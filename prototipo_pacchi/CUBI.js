@@ -1,96 +1,135 @@
-let player;
+let personaggio;
 let cubi = [];
-let colori;
-let stackCount = 0;
+let colori; // rimane per determinare colore attuale
+let immagini = {};
 
-function setup() {
-  createCanvas(600, 400);
+let pilaCont = 0;
+let coloreOra;
+let ultimoColoCam = 0;
+let colorInterval = 7000;
 
-  player = {
-    x: width / 2,
-    y: height - 40,
-    size: 30,
-    speed: 5
-  };
+let gameOver = false;
+let win = false;
 
-  colori = [
-    color(0, 0, 255),   // blu
-    color(255, 0, 0),   // rosso
-    color(0, 255, 0)    // verde
-  ];
+let pila;
 
-  for (let k = 0; k < 6; k++) {
-    cubi.push(createCube());
-  }
+let blu, rosso, verde, giallo;
+
+function preload(){
+    blu = loadImage("regalo_blu.png");
+    rosso = loadImage("regalo_rosso.png");
+    verde = loadImage("regalo_verde.png");
+    giallo = loadImage("regalo_giallo.png");
 }
 
-function draw() {
-  background(220);
+function setup(){
+    createCanvas(windowWidth-21, windowHeight-21); 
+    frameRate(60);
 
-  movePlayer();
-  drawPlayer();
+    personaggio = new Player();
 
-  for (let cubo of cubi) {
+    // Colori per il colore "attuale" dello schermo
+    colori = ["blu", "rosso", "verde", "giallo"]; // ora è stringa
 
-    // se NON è preso, scende lentamente
-    if (!cubo.taken) {
-      cubo.y += cubo.speed;
+    coloreOra = random(colori);
+    pila = width - 50;
 
-      if (cubo.y > height) {
-        resetCube(cubo);
-      }
+    for(let k = 0; k < 10; k++){
+        cubi.push(new Cubo());
+    }
+}
 
-      if (collide(player, cubo)) {
-        cubo.taken = true;
-        cubo.x = width - cubo.size;
-        cubo.y = height - cubo.size * (stackCount + 1);
-        cubo.speed = 0;
-        stackCount++;
-      }
+function draw(){
+    background(220);
+
+    disegnaSchermoColore();
+
+    if(gameOver || win){
+        schermataFinale();
+        return;
     }
 
-    fill(cubo.col);
-    rect(cubo.x, cubo.y, cubo.size, cubo.size);
-  }
+    cambiaColoreTempo();
+    personaggio.move();
+    personaggio.show();
+
+    for(let cubo of cubi){
+
+        if(!cubo.taken){ // cubo non preso
+            cubo.scendi();
+
+            if(cubo.y > height){ 
+                cubo.reset(); // continua a farli scendere
+            }
+
+            if(collide(personaggio, cubo)){
+
+                if(cubo.nome === coloreOra){ // confronto corretto con stringhe
+                    cubo.taken = true; 
+                    cubo.speed = 0;
+
+                    cubo.x = pila;
+                    cubo.y = height - cubo.size * (pilaCont + 1);
+                    pilaCont++;
+
+                    if(pilaCont >= 10){
+                        win = true;
+                    }
+
+                } else {
+                    gameOver = true;
+                }
+            }
+        }
+        cubo.show();
+    }
 }
 
-function movePlayer() {
-  if (keyIsDown(LEFT_ARROW)) player.x -= player.speed;
-  if (keyIsDown(RIGHT_ARROW)) player.x += player.speed;
+function cambiaColoreTempo() {
+    let tempoPassato = millis() - ultimoColoCam;
 
-  player.x = constrain(player.x, 0, width - player.size);
+    if (tempoPassato > colorInterval) {
+        coloreOra = random(colori);   // nuovo colore (stringa)
+        ultimoColoCam = millis();
+    }
 }
 
-
-function drawPlayer() {
-  fill(0);
-  rect(player.x, player.y, player.size, player.size);
+function disegnaSchermoColore() {
+    switch(coloreOra){ // mostra lo sfondo con lo stesso colore RGB della stringa
+        case "blu":
+            fill(0, 0, 255);
+            break;
+        case "rosso":
+            fill(255, 0, 0);
+            break;
+        case "verde":
+            fill(0, 255, 0);
+            break;
+        case "giallo":
+            fill(255, 255, 0);
+            break;
+    }
+    rect(0, 0, width, height); 
 }
 
-function createCube() {
-  return {
-    x: random(width - 40),
-    y: random(-300, 0),
-    size: 30,
-    speed: random(0.5, 1.5), // PIÙ LENTI 🐢
-    col: random(colori),
-    taken: false
-  };
+function schermataFinale(){
+    textSize(40);
+    textAlign(CENTER, CENTER);
+    fill(0);
+
+    if(win){
+        text("HAI VINTO", width/2, height/2);
+    } else {
+        text("GAME OVER", width/2, height/2);
+    }
 }
 
-function resetCube(cubo) {
-  cubo.x = random(width - 40);
-  cubo.y = random(-200, 0);
-  cubo.speed = random(0.5, 1.5);
-  cubo.col = random(colori);
-  cubo.taken = false;
+function collide(a, b){
+    return (
+        a.x < b.x + b.size &&
+        a.x + a.size > b.x &&
+        a.y < b.y + b.size &&
+        a.y + a.size > b.y
+    );
 }
 
-function collide(a, b) {
-  return (
-    a.x < b.x + b.size &&
-    a.x + a.size > b.x &&
-    a.y < b.y + b.size &&
-    a.y + a.size > b.y
-  );
-}
