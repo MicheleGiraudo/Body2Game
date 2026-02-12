@@ -1,39 +1,40 @@
-
 class Player {
-    constructor(imgIniziale, startX, startY) {
-        this.x = startX
-        this.y = startY
-        this.imgShow = imgIniziale
-        this.step = 25
-        this.width = 60
-        this.height = 60
-    }
+  constructor(imgIniziale, startX, startY) {
+    this.x = startX;
+    this.y = startY;
+    this.imgShow = imgIniziale;
+    this.width = 85;
+    this.height = 85;
+    this.invincibile = false;
+    this.lampeggioDurata = 60; // frame
+    this.lampeggioTimer = 0;
+  }
 
-    moveDx() {
-        this.x += this.step
-        if (this.x + this.width > width) this.x = width - this.width
+  show() {
+    if (this.invincibile) {
+      if (frameCount % 10 < 5) return; // lampeggio
     }
+    image(this.imgShow, this.x, this.y, this.width, this.height);
+  }
 
-    moveSx() {
-        this.x -= this.step
-        if (this.x < 0) this.x = 0
+  collide(obj) {
+    return (
+      this.x < obj.x + obj.size &&
+      this.x + this.width > obj.x &&
+      this.y < obj.y + obj.size &&
+      this.y + this.height > obj.y
+    );
+  }
+
+  attivaInvincibilita() {
+    this.invincibile = true;
+    this.lampeggioTimer = this.lampeggioDurata;
+  }
+
+  update() {
+    if (this.invincibile) {
+      this.lampeggioTimer--;
+      if (this.lampeggioTimer <= 0) this.invincibile = false;
     }
-
-    show() {
-        image(this.imgShow, this.x, this.y, this.width, this.height)
-    }
-}
-
-class Oggetto {
-    constructor(img){
-        this.img = img
-        this.x = random(0, width - 60)
-        this.y = -60
-        this.vel = bgVel  // stessa velocità dello sfondo
-        this.size = 60
-    }
-
-    move(){ this.y += this.vel }
-    show(){ image(this.img, this.x, this.y, this.size, this.size) }
-    fuoriSchermo(){ return this.y > height }
+  }
 }
