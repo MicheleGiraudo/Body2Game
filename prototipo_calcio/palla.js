@@ -3,8 +3,8 @@ class Palla {
     this.x = x;
     this.y = y;
 
-    this.vx = random(-8, 8); //angolazione
-    this.vy = random(-5, -2); //velocita
+    this.vx = random(-25, 25); //angolazione
+    this.vy = random(-40, -20); //velocita
 
     this.imgShow = img;
 
