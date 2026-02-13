@@ -3,7 +3,7 @@ class Bullet{
         this.imgShow = imgIniziale
         this.x = x
         this.y = y
-        this.speed = 14
+        this.speed = 20
     }
 
     move() {
