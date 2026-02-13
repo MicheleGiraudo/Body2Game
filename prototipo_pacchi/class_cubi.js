@@ -1,6 +1,6 @@
 class Cubo{
     constructor(){
-        this.size = 50;
+        this.size = 80;
         this.reset();
         this.taken = false;
     }
@@ -14,7 +14,11 @@ class Cubo{
     }
 
     reset(){
-        this.x = random(width - 80);
+    // Genera x evitando la zona della pila
+        do {
+            this.x = random(width - this.size);
+        } while (this.x > pila - this.size && this.x < pila + this.size);
+
         this.y = random(-150, 0);
         this.speed = random(0.5, 2);
 
@@ -33,4 +37,4 @@ class Cubo{
         this.taken = false;
     }
 
-} 
+}
