@@ -1,21 +1,25 @@
-let bgimg;
-let surfistadx;
-let surfistasx;
-let protagonista;
+let bgimg
+let surfistadx
+let surfistasx
+let protagonista
 let oggetti = [];
-let scoglio, boaG, boaP, alga;
-let bgY1 = 0, bgY2;
-let bgVel = 5;
+let scoglio, boaG, boaP, alga
+let bgY1 = 0, bgY2
+let bgVel = 5
 
-let cuorePieno, cuoreVuoto;
-let maxVite = 3;
-let vite = maxVite;
+let cuorePieno, cuoreVuoto
+let maxVite = 3
+let vite = maxVite
 
 // FaceMesh
-let video;
-let facemesh;
-let predictions = [];
-let modelReady = false;
+let video
+let facemesh
+let predictions = []
+let modelReady = false
+
+let schema = 1
+let pausa
+let paused
 
 function preload() {
   bgimg = loadImage('./img/sfondo.png');
@@ -29,25 +33,30 @@ function preload() {
 
   cuorePieno = loadImage('./img/cuorePieno.png');
   cuoreVuoto = loadImage('./img/cuoreVuoto.png');
+
+  pausa = loadImage('./img/pause.png');
+ 
 }
 
 function setup() {
   createCanvas(1500, 710);
-  // Posiziona il protagonista in basso al centro
-  protagonista = new Player(surfistadx, width/2 - 42.5, height - 120);
+  protagonista = new Player(surfistadx, width / 2 - 42.5, height - 120);
   bgY2 = -height;
   frameRate(30);
+
+  // Inizializza pausa
+  paused = new Pausa(pausa);
 
   // setup webcam
   video = createCapture(VIDEO);
   video.size(width, height);
   video.hide();
 
-  // Inizializza faceMesh
+  // Inizializza FaceMesh
   try {
     facemesh = ml5.faceMesh(video, modelLoaded);
   } catch (error) {
-    console.error("Errore nel caricamento di faceMesh:", error);
+    console.error("Errore nel caricamento di FaceMesh:", error);
   }
 }
 
@@ -57,7 +66,7 @@ function modelLoaded() {
 }
 
 function draw() {
-  background(200);
+  //background(200);
 
   // GAME OVER
   if (vite <= 0) {
@@ -70,57 +79,66 @@ function draw() {
   }
 
   // sfondo
-  image(bgimg, 0, bgY1, width, height);
-  image(bgimg, 0, bgY2, width, height);
-  bgY1 += bgVel;
-  bgY2 += bgVel;
-  if (bgY1 >= height) bgY1 = bgY2 - height;
-  if (bgY2 >= height) bgY2 = bgY1 - height;
+  if (schema === 1) {
+    image(bgimg, 0, bgY1, width, height);
+    image(bgimg, 0, bgY2, width, height);
+    bgY1 += bgVel;
+    bgY2 += bgVel;
+    if (bgY1 >= height) bgY1 = bgY2 - height;
+    if (bgY2 >= height) bgY2 = bgY1 - height;
+  } else if (schema === 2) {
+    image(paused.imgShows, 0, 0, width, height);
+  }
 
   // FaceMesh predictions
-  if (modelReady && facemesh) {
+  if (modelReady && facemesh && schema === 1) {
     getFacePredictions();
   }
 
-  // mostra protagonista
-  protagonista.update();
-  protagonista.show();
+  // gestione oggetti
+  if (schema === 1) {
 
-  // genera oggetti
-  if (random(1) < 0.05) {
-    let imgs = [scoglio, boaG, boaP, alga];
-    oggetti.push(new Oggetto(random(imgs)));
-  }
+    // mostra protagonista
+    protagonista.update();
+    protagonista.show();
 
-  // muove e controlla oggetti
-  for (let i = oggetti.length - 1; i >= 0; i--) {
-    oggetti[i].move();
-    oggetti[i].show();
-
-    if (protagonista.collide(oggetti[i]) && !protagonista.invincibile) {
-      vite--;
-      protagonista.attivaInvincibilita();
-      oggetti.splice(i, 1);
-      continue;
+    // genera nuovi oggetti
+    if (random(1) < 0.05) {
+      let imgs = [scoglio, boaG, boaP, alga];
+      oggetti.push(new Oggetto(random(imgs)));
     }
 
-    if (oggetti[i].fuoriSchermo()) {
-      oggetti.splice(i, 1);
-    }
-  }
+    // muove e mostra oggetti
+    for (let i = oggetti.length - 1; i >= 0; i--) {
+      oggetti[i].move();
+      oggetti[i].show();
 
-  // disegna cuori vite
-  let spazio = 5;
-  let sizeCuore = 60;
-  for (let i = 0; i < maxVite; i++) {
-    let x = 20 + i * (sizeCuore + spazio);
-    let y = 20;
-    if (i < vite) {
-      image(cuorePieno, x, y, sizeCuore, sizeCuore);
-    } else {
-      image(cuoreVuoto, x, y, sizeCuore, sizeCuore);
+      if (protagonista.collide(oggetti[i]) && !protagonista.invincibile) {
+        vite--;
+        protagonista.attivaInvincibilita();
+        oggetti.splice(i, 1);
+        continue;
+      }
+
+      if (oggetti[i].fuoriSchermo()) {
+        oggetti.splice(i, 1);
+      }
+    }
+
+    // disegna cuori vite
+    let spazio = 30;
+    let sizeCuore = 75;
+    for (let i = 0; i < maxVite; i++) {
+      let x = 20 + i * spazio;
+      let y = 20;
+      if (i < vite) {
+        image(cuorePieno, x, y, sizeCuore, sizeCuore);
+      } else {
+        image(cuoreVuoto, x, y, sizeCuore, sizeCuore);
+      }
     }
   }
+  // se schema == 2, gli oggetti rimangono invisibili ma restano nell'array
 }
 
 // --- funzione per ottenere la posizione del naso ---
@@ -136,16 +154,25 @@ function gotFaces(results) {
   if (predictions && predictions.length > 0) {
     let nose = predictions[0].keypoints[1]; // punto naso
     let noseX = nose.x;
-    
-    // Mappa la posizione del naso sul canvas (inverti per controllo più naturale)
+
     let targetX = map(noseX, 0, video.width, width - protagonista.width, 0);
     protagonista.x = constrain(targetX, 0, width - protagonista.width);
 
-    // cambiamo immagine in base alla direzione
     if (noseX < video.width / 2) {
       protagonista.imgShow = surfistadx;
     } else {
       protagonista.imgShow = surfistasx;
+    }
+  }
+}
+
+// gestione tasto ESC
+function keyPressed() {
+  if (keyCode === ESCAPE) {
+    if (schema === 1) {
+      schema = 2; // pausa
+    } else if (schema === 2) {
+      schema = 1; // torna al gioco
     }
   }
 }

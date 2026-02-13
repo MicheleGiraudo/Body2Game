@@ -1,7 +1,6 @@
 // HAND TRACKING
 let model
 let video
-let predictions = []
 
 //IMMAGINI                
 let bgimg //immagine di sfondo
@@ -36,7 +35,7 @@ let tempoInizioAttesa = 0 //per il timer prima avvenga il tiro
 let tempoAttesaTiro = 2000
 
 //impostazioni del gioco
-let stato = "gioco" // "gioco" | "goal"
+let stato = "gioco" // "gioco" | "goal" | "attesa"
 let timerGoal = 0
 let durataGoal = 72 
 let counterParate = 0 
@@ -50,14 +49,27 @@ let modelLoaded = false
 //font per il counter delle parate
 let arcadeFont
 
+//SUONI
+let suonoParata
+let suonoGoal
+let suonoCalcio
+let audioPronto = false
 
 function preload(){
+    //carica foto 
     bgimg = loadImage('./img/sfondo.png')
     pallaImg = loadImage('./img/palla.png')
     guantoImg = loadImage('./img/guanto.png')
     goalImg = loadImage('./img/goal.png')
     parateImg = loadImage('./img/parate.png')
+
+    //carica font per counter
     arcadeFont = loadFont('./font/PressStart2P-Regular.ttf')
+
+    //carica suoni
+    suonoParata = loadSound('./suoni/parata.mp3')
+    suonoGoal = loadSound('./suoni/goal.mp3')
+    suonoCalcio = loadSound('./suoni/calcio.mp3')
 }
 
 function setup(){
@@ -76,6 +88,13 @@ function setup(){
     tempoInizioParata = millis() //inizializza timer
 }
 
+// Abilita audio al primo click
+function mousePressed() {
+    userStartAudio()
+    audioPronto = true
+    console.log('Audio attivato!')
+}
+
 async function loadHandTrackingModel() {
     try {
         model = await handpose.load();
@@ -91,12 +110,12 @@ async function predictHand() {
     if (!modelLoaded || !model) return;
     
     try {
-        predictions = await model.estimateHands(video.elt);
+        const hands = await model.estimateHands(video.elt);
         
-        if (predictions.length > 0) {
+        if (hands.length > 0) {
             handDetected = true;
             
-            let palmBase = predictions[0].landmarks[0];
+            let palmBase = hands[0].landmarks[0];
             
             handX = map(palmBase[0], 0, 640, Ximg, 0);
             handY = map(palmBase[1], 0, 480, 0, Yimg);
@@ -113,7 +132,7 @@ async function predictHand() {
         console.error('Errore predizione:', error);
     }
     
-    setTimeout(function() { predictHand(); }, 50);
+    setTimeout(function() { predictHand(); }, 30);
 }
 
 function draw(){
@@ -145,21 +164,34 @@ function draw(){
 
         if (timerGoal > durataGoal) {
             resetPalla()
-            stato = "gioco"
+            stato = "attesa"
+            tempoInizioAttesa = millis()
         }
+        
     } else if(stato === "attesa"){
-        tempoInizioAttesa++
+        // Disegna tutto ma con palla ferma
+        background(bgimg)
+        image(guanto.imgShow, guanto.x, guanto.y)
+        image(palla.imgShow, palla.x, palla.y, palla.size, palla.size)
+        image(parateImg, 390, 460)
+        
+        checkMano()
+        
+        textFont(arcadeFont);
+        textSize(70);
+        fill(255, 170, 0);
+        textAlign(RIGHT);
+        text(counterParate, 1030, 680);
 
-        resetPalla()
-
+        // Controlla se è passato il tempo
         if(millis() - tempoInizioAttesa > tempoAttesaTiro){
             stato = "gioco"
-            tempoInizioAttesa = millis()
+            pallaTirata = false // reset per nuovo tiro
         }
     }
 }
 
-function moveBall(){
+function moveBall(){    
     palla.x += palla.vx 
     palla.y += palla.vy
 }
@@ -172,12 +204,16 @@ function prospettivaPalla(){
 
 function checkInPorta(){
     if(palla.x >= 1300 || palla.x <= 160 || palla.y <= 120){
+        if(audioPronto){
+            console.log('Goal!')
+        }
         stato = "goal"
         timerGoal = 0
         counterParate = 0
     }
 }
 
+//parata 
 function collisioneDelCerchio(cx, cy, r, rx, ry, rw, rh) {
     let closestX = constrain(cx, rx, rx + rw)
     let closestY = constrain(cy, ry, ry + rh)
@@ -188,10 +224,9 @@ function collisioneDelCerchio(cx, cy, r, rx, ry, rw, rh) {
     return (dx * dx + dy * dy) < (r * r)
 }
 
-// MODIFICATA: parata possibile solo dopo 5 secondi
+//parata possibile solo dopo 800 millisecondi
 function checkParata(){
-
-    //Blocca la parata prima dei 5 secondi
+    //Blocca la parata prima degli 800ms
     if (millis() - tempoInizioParata < 800) return;
 
     let guantoHit = {
@@ -207,6 +242,9 @@ function checkParata(){
 
     if (collisioneDelCerchio(ballCX, ballCY, ballR, guantoHit.x, guantoHit.y, guantoHit.w, guantoHit.h)) {
         resetPalla()
+        if(audioPronto){
+            console.log('Parata!')
+        }
         counterParate++
         stato = "attesa"
         tempoInizioAttesa = millis()
@@ -214,6 +252,7 @@ function checkParata(){
     }
 }
 
+// dopo ogni gol si posiziona nella posizione iniziale
 function resetPalla() {
     palla.x = xPalla
     palla.y = yPalla
@@ -225,8 +264,10 @@ function resetPalla() {
     palla.startY = palla.y
     
     tempoInizioParata = millis() //reset timer tiro
+    pallaTirata = false // reset per il prossimo tiro
 }
 
+// se non trova la mano si attiva il cursore
 function mouseMoved() {
     if (!handDetected && modelLoaded) {
         guanto.x = mouseX - 50;
@@ -236,31 +277,32 @@ function mouseMoved() {
     }
 }
 
+//controllo della mano
 function checkMano(){
     if (!modelLoaded) {
-            textFont('sans-serif')
-            fill(255, 165, 0);
-            noStroke();
-            ellipse(30, 30, 20, 20);
-            fill(255);
-            textSize(16);
-            text("Caricamento modello...", 210, 35);
-        }
-        else if (handDetected) {
-            textFont('sans-serif')
-            fill(0, 255, 0);
-            noStroke();
-            ellipse(30, 30, 20, 20);
-            fill(255);
-            textSize(16);
-            text("Mano rilevata", 150, 35);
-        } else {
-            textFont('sans-serif')
-            fill(255, 0, 0);
-            noStroke();
-            ellipse(30, 30, 20, 20);
-            fill(255);
-            textSize(16);
-            text("Nessuna mano", 160, 35);
-        }
+        textFont('sans-serif')
+        fill(255, 165, 0);
+        noStroke();
+        ellipse(30, 30, 20, 20);
+        fill(255);
+        textSize(16);
+        text("Caricamento modello...", 210, 35);
+    }
+    else if (handDetected) {
+        textFont('sans-serif')
+        fill(0, 255, 0);
+        noStroke();
+        ellipse(30, 30, 20, 20);
+        fill(255);
+        textSize(16);
+        text("Mano rilevata", 150, 35);
+    } else {
+        textFont('sans-serif')
+        fill(255, 0, 0);
+        noStroke();
+        ellipse(30, 30, 20, 20);
+        fill(255);
+        textSize(16);
+        text("Nessuna mano", 160, 35);
+    }
 }

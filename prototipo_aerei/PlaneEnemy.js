@@ -1,8 +1,8 @@
-class Rocket{
+class PlaneEnemy{
     constructor(imgIniziale) {
         this.x = width
         this.y = random(30, height-100)
-        this.speed = 14 //velocità verso sinistra
+        this.speed = 15 //velocità verso sinistra
         this.imgShow = imgIniziale
     }
 
