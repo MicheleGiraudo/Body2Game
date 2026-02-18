@@ -14,19 +14,17 @@ class Cubo{
     }
 
     reset(){
-    // Genera x evitando la zona della pila
         do {
             this.x = random(width - this.size);
         } while (this.x > pila - this.size && this.x < pila + this.size);
 
         this.y = random(-150, 0);
-        this.speed = random(0.5, 2);
+        this.speed = 2;
 
         let scelta = random(["blu", "rosso", "verde", "giallo"]);
 
         this.nome = scelta;
 
-        // Associa immagine alla variabile scelta
         switch(scelta){
             case "blu": this.img = blu; break;    
             case "rosso": this.img = rosso; break; 
@@ -36,5 +34,4 @@ class Cubo{
 
         this.taken = false;
     }
-
 }
