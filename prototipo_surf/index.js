@@ -21,20 +21,26 @@ let schema = 1
 let pausa
 let paused
 
+let gameOver
+
+let pixelFont
+
 function preload() {
-  bgimg = loadImage('./img/sfondo.png');
-  surfistadx = loadImage('./img/surfdx.png');
-  surfistasx = loadImage('./img/surfsx.png');
+  bgimg = loadImage('./img/sfondo.png')
+  surfistadx = loadImage('./img/surfdx.png')
+  surfistasx = loadImage('./img/surfsx.png')
 
-  scoglio = loadImage('./img/scogli.png');
-  boaG = loadImage('./img/boa.png');
-  boaP = loadImage('./img/boaPiccola.png');
-  alga = loadImage('./img/alghe.png');
+  scoglio = loadImage('./img/scogli.png')
+  boaG = loadImage('./img/boa.png')
+  boaP = loadImage('./img/boaPiccola.png')
+  alga = loadImage('./img/alghe.png')
 
-  cuorePieno = loadImage('./img/cuorePieno.png');
-  cuoreVuoto = loadImage('./img/cuoreVuoto.png');
+  cuorePieno = loadImage('./img/cuorePieno.png')
+  cuoreVuoto = loadImage('./img/cuoreVuoto.png')
 
-  pausa = loadImage('./img/pause.png');
+  pausa = loadImage('./img/pause.png')
+
+  pixelFont = loadFont("./font/PressStart2P-Regular.ttf")
  
 }
 
@@ -68,16 +74,6 @@ function modelLoaded() {
 function draw() {
   //background(200);
 
-  // GAME OVER
-  if (vite <= 0) {
-    fill(255, 0, 0);
-    textSize(60);
-    textAlign(CENTER);
-    text("GAME OVER", width / 2, height / 2);
-    noLoop();
-    return;
-  }
-
   // sfondo
   if (schema === 1) {
     image(bgimg, 0, bgY1, width, height);
@@ -88,7 +84,14 @@ function draw() {
     if (bgY2 >= height) bgY2 = bgY1 - height;
   } else if (schema === 2) {
     image(paused.imgShows, 0, 0, width, height);
+  } else if (schema === 3){
+    textFont(pixelFont)
+    textAlign(CENTER, CENTER)
+    textSize(75)
+    fill(255, 0, 0)
+    text("GAME OVER", width/2, height/2)
   }
+
 
   // FaceMesh predictions
   if (modelReady && facemesh && schema === 1) {
@@ -139,6 +142,13 @@ function draw() {
     }
   }
   // se schema == 2, gli oggetti rimangono invisibili ma restano nell'array
+
+
+  // GAME OVER
+  if (vite <= 0) {
+    schema = 3
+  }
+
 }
 
 // --- funzione per ottenere la posizione del naso ---
@@ -166,7 +176,7 @@ function gotFaces(results) {
   }
 }
 
-// gestione tasto ESC
+// pausa con tasto ESC
 function keyPressed() {
   if (keyCode === ESCAPE) {
     if (schema === 1) {
