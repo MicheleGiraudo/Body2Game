@@ -1,6 +1,6 @@
 let personaggio;
 let cubi = [];
-let colori; // rimane per determinare colore attuale
+let colori;
 let immagini = {};
 let pilaCont = 0;
 let coloreOra;
@@ -17,16 +17,20 @@ let babboDx, babboSx;
 let sfondo; 
 let imgVinto, imgPerso;
 
-//font per il counter delle parate
-let arcadeFont
+let pauseImg;
 
-// Variabili per body e hand tracking
+// font
+let arcadeFont;
+
+// Tracking
 let bodyPose;
 let handPose;
 let poses = [];
 let hands = [];
 let connections;
 let video;
+
+let schema = 1; // 1 = gioco, 0 = pausa
 
 let options = {
   maxHands: 2,
@@ -49,9 +53,10 @@ function preload(){
     imgVinto = loadImage("./img/hai_vinto.jpeg");
     imgPerso = loadImage("./img/hai_perso.jpeg");
 
-    arcadeFont = loadFont('./font/PressStart2P-Regular.ttf')
+    pauseImg = loadImage('./img/pause.png');
+
+    arcadeFont = loadFont('./font/PressStart2P-Regular.ttf');
     
-    // Inizializza modelli di riconoscimento corpo e mani
     bodyPose = ml5.bodyPose();
     handPose = ml5.handPose(options, modelReady);
 }
@@ -64,23 +69,20 @@ function setup(){
     createCanvas(windowWidth-21, windowHeight-21); 
     frameRate(60);
 
-    // Attiva webcam per il tracking
     video = createCapture(VIDEO);
     video.size(640, 480);
     video.hide();
     
-    // Avvia rilevamento pose corpo e mani
     bodyPose.detectStart(video, gotPoses);
     handPose.detectStart(video, gotHands);
     
-    // Ottiene struttura scheletro del corpo
     connections = bodyPose.getSkeleton();
 
     personaggio = new Player();
 
     colori = ["blu", "rosso", "verde", "giallo"];
-
     coloreOra = random(colori);
+
     pila = width - 100;
 
     for(let k = 0; k < 7; k++){
@@ -93,44 +95,65 @@ function draw(){
 
     disegnaSchermoColore();
 
-    if(gameOver || win){
-        schermataFinale();
-        return;
-    }
+    if (!gameOver && !win) {
 
-    cambiaColoreTempo();
-    personaggio.move();
-    personaggio.show();
+        // SOLO SE STO GIOCANDO
+        if (schema === 1) {
+            cambiaColoreTempo();
+            personaggio.move();
+        }
 
-    for(let cubo of cubi){
+        personaggio.show();
 
-        if(!cubo.taken){
-            cubo.scendi();
+        for (let cubo of cubi){
 
-            if(cubo.y > height){ 
-                cubo.reset();
-            }
+            if(!cubo.taken){
 
-            if(collide(personaggio, cubo)){
+                if (schema == 1) {
 
-                if(cubo.nome === coloreOra){
-                    cubo.taken = true; 
-                    cubo.speed = 0;
+                    cubo.scendi();
 
-                    cubo.x = pila;
-                    cubo.y = height - cubo.size * (pilaCont + 1);
-                    pilaCont++;
-
-                    if(pilaCont >= 5){
-                        win = true;
+                    if(cubo.y > height){ 
+                        cubo.reset();
                     }
 
-                } else {
-                    gameOver = true;
+                    if(collide(personaggio, cubo)){
+
+                        if(cubo.nome == coloreOra){
+                            cubo.taken = true; 
+                            cubo.speed = 0;
+
+                            cubo.x = pila;
+                            cubo.y = height - cubo.size * (pilaCont + 1);
+                            pilaCont++;
+
+                            if(pilaCont >= 5){
+                                win = true;
+                            }
+
+                        } else {
+                            gameOver = true;
+                        }
+                    }
                 }
             }
+
+            cubo.show();
         }
-        cubo.show();
+
+    } else {
+        schermataFinale();
+    }
+
+    if (schema == 0) {
+        fill(0, 150);
+        rect(0, 0, width, height);
+
+        let imgSize = 400;
+
+        imageMode(CENTER);
+        image(pauseImg, width / 2, height / 2, imgSize, imgSize);
+        imageMode(CORNER);
     }
 }
 
@@ -198,12 +221,22 @@ function collide(a, b){
     );
 }
 
-// Salva le pose rilevate dal modello
 function gotPoses(results) {
   poses = results;
 }
 
-// Salva le mani rilevate dal modello
 function gotHands(results) {
   hands = results;
 }
+
+function keyPressed() {
+  if (keyCode == ESCAPE && !gameOver && !win) {
+
+    if (schema == 1) {
+      schema = 0; // pausa
+    } else {
+      schema = 1; // riprendi
+    }
+
+  }
+} 
