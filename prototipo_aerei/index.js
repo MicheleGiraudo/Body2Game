@@ -48,18 +48,29 @@ let img_bullet
 let img_gear
 let img_heartFull
 let img_heartEmpty
+let img_pause
 
 //SCHEMI E ALTRO
 let gameOver = false
 let gameStartTime = 0
 let gameCanStart = false
 const DELAY_BEFORE_ENEMIES = 10000 // 10 secondi in millisecondi
+let isPaused = false
+let enemiesDestroyed = 0
 
 //HAND TRACKING
 let model, video, predictions = []
 let handY = null
 let isHandClosed = false
 let previousHandClosed = false
+
+//FONT PER LE SCRITTE
+let arcadeFont
+
+//INVINCIBILITÀ
+let isInvincible = false
+let invincibleStartTime = 0
+const INVINCIBLE_TIME = 2000 // 2 secondi
 
 function preload() {
     bimg_sky1 = loadImage('./img/cielo.png')
@@ -70,6 +81,9 @@ function preload() {
     img_gear = loadImage('./img/ingranaggio.png')
     img_heartFull = loadImage('./img/cuorePieno.png')
     img_heartEmpty = loadImage('./img/cuoreVuoto.png')
+    img_pause = loadImage('./img/pause.png')
+    arcadeFont = loadFont('./font/PressStart2P-Regular.ttf')
+
     // array parte da 0 invece che da 1
     for (let i = 0; i < 6; i++) {
         img_explosions[i] = loadImage("./img/esplosione" + (i + 1) + ".png");
@@ -154,9 +168,13 @@ function detectHandClosed(prediction) {
 }
 
 function draw() {
+    if (isPaused) {
+        image(img_pause, width / 2 - img_pause.width / 2, height / 2 - img_pause.height / 2)
+        return
+    }
     // Controlla se sono passati 10 secondi
     if (!gameCanStart && millis() - gameStartTime >= DELAY_BEFORE_ENEMIES) {
-        gameCanStart = true
+    gameCanStart = true
     }
     
     // Gestione ricarica munizioni
@@ -189,14 +207,23 @@ function draw() {
     
     // Disegna cuori (vite) in alto a sinistra
     for (let i = 0; i < MAX_LIVES; i++) {
-        let heartX = 20 + i * 60
-        let heartY = 20
+        let heartX = 20 + i * 70
+        let heartY = 10
         if (i < lives) {
             image(img_heartFull, heartX, heartY, 50, 50)
         } else {
             image(img_heartEmpty, heartX, heartY, 50, 50)
         }
     }
+
+    // Disegna contatore aerei abbattuti in alto a destra
+    textFont(arcadeFont)
+    textSize(20)
+    textAlign(LEFT)
+    stroke(0)
+    strokeWeight(4)
+    fill(255, 170, 0)
+    text("Abbattuti: " + enemiesDestroyed, 30, 700)
     
     // Disegna contatore munizioni in alto a sinistra sotto i cuori
     fill(255)
@@ -230,12 +257,32 @@ function draw() {
         } else {
             fill(255)
         }
+        textFont(arcadeFont)
+        textSize(30)
+        stroke(0)         // colore bordo
+        strokeWeight(4)    // spessore bordo
+        fill(255, 170, 0)
         text("Munizioni: " + ammo + "/" + MAX_AMMO, 20, 100)
     }
     
     // Disegna aereo se esiste
     if (plane) {
-        image(plane.imgShow, plane.x, plane.y)
+        // Aggiorna invincibilità
+        if (isInvincible) {
+            if (millis() - invincibleStartTime >= INVINCIBLE_TIME) {
+                isInvincible = false
+            }
+        }
+
+        // Lampeggio: mostra l'aereo a intervalli di 100ms durante l'invincibilità
+        let showPlane = true
+        if (isInvincible) {
+            showPlane = Math.floor((millis() - invincibleStartTime) / 200) % 2 === 0
+        }
+
+        if (showPlane) {
+            image(plane.imgShow, plane.x, plane.y)
+        }
         
         // CONTROLLO CON HAND TRACKING
         if (handY !== null && !gameOver) {
@@ -263,13 +310,12 @@ function draw() {
         gears.push(new Gear(img_gear))
     }
 
-    // SPARO CON HAND TRACKING (quando la mano si chiude)
-    if (isHandClosed && !previousHandClosed && !gameOver && plane && !isReloading) {
+    // SPARO CON HAND TRACKING (quando la mano è aperta, continuo)
+    if (!isHandClosed && handY !== null && frameCount % bullet_spawnRate === 0 && !gameOver && plane && !isReloading) {
         if (ammo > 0) {
             shots.push(new Bullet(img_bullet, plane.x + plane.width, plane.y + plane.height/2))
             ammo--
             
-            // Se finiscono le munizioni, inizia la ricarica
             if (ammo <= 0) {
                 isReloading = true
                 reloadStartTime = millis()
@@ -327,6 +373,7 @@ function draw() {
                     ))
                     
                     // Rimuovi aereo nemico e proiettile
+                    enemiesDestroyed++
                     obstacles.splice(j, 1)
                     shots.splice(i, 1)
                     break
@@ -382,17 +429,23 @@ function draw() {
             if(plane.collision(distance, obstacles[i])) {
                 // Rimuovi aereo nemico
                 obstacles.splice(i, 1)
-                
-                // Perdi una vita
-                lives--
-                
-                // Crea esplosione
-                explosions.push(new Explosion(plane.x, plane.y, plane.width, plane.height))
-                
-                // Se non ci sono più vite, game over
-                if (lives <= 0) {
-                    plane = null
-                    gameOver = true
+
+                // Perdi una vita solo se non invincibile
+                if (!isInvincible) {
+                    lives--
+                    
+                    // Attiva invincibilità e lampeggio
+                    isInvincible = true
+                    invincibleStartTime = millis()
+                    
+                    // Crea esplosione
+                    explosions.push(new Explosion(plane.x, plane.y, plane.width, plane.height))
+                    
+                    // Se non ci sono più vite, game over
+                    if (lives <= 0) {
+                        plane = null
+                        gameOver = true
+                    }
                 }
             }
         }
@@ -415,11 +468,38 @@ function draw() {
         ellipse(width - 30, 30, 20, 20)
     }
     
+    // Countdown pre-partita
+    if (!gameCanStart) {
+        let secondsLeft = Math.ceil((DELAY_BEFORE_ENEMIES - (millis() - gameStartTime)) / 1000)
+        
+        noStroke()
+        fill(0, 0, 0, 150)
+        rect(0, height / 2 - 100, width, 200)
+        
+        textFont(arcadeFont)
+        textAlign(CENTER, CENTER)
+        stroke(0)
+        strokeWeight(4)
+        fill(255, 220, 0)
+        textSize(50)
+        text("PREPARATI!", width / 2, height / 2 - 30)
+        
+        fill(255)
+        textSize(80)
+        text(secondsLeft, width / 2, height / 2 + 50)
+    }
+
     // Messaggio Game Over
     if (gameOver) {
         fill(255, 0, 0)
         textSize(72)
         textAlign(CENTER, CENTER)
         text("GAME OVER", width / 2, height / 2)
+    }
+}
+
+function keyPressed() {
+    if (keyCode === ESCAPE) {
+        isPaused = !isPaused
     }
 }
