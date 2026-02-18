@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Body2Game</title>
+
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+
+    .container {
+      position: relative;
+      width: 1537px;
+      height: 900px;
+    }
+
+    .background {
+      width: 100%;
+      height: 100%;
+      object-fit: fill;
+    }
+
+    /* Hotspot invisibili */
+    .btn {
+      position: absolute;
+      width: 150px; /* larghezza hotspot */
+      height: 50px; /* altezza hotspot */
+      background: rgba(0,0,0,0); /* invisibile */
+      cursor: pointer;
+      border: none;
+      padding: 0;
+    }
+
+    /* Tooltip che appare al passaggio del mouse */
+    .tooltip {
+      position: absolute;
+      background: rgba(0,0,0,0.8);
+      color: #fff;
+      padding: 10px;
+      border-radius: 10px;
+      display: none;
+      width: 250px;
+      font-size: 14px;
+      z-index: 10;
+    }
+
+    .btn:hover .tooltip {
+      display: block;
+    }
+
+    /* Posizione dei tooltip rispetto all'hotspot */
+    #aerei .tooltip   { top: -80px; left: -50px; }
+    #calcio .tooltip  { top: -80px; left: -50px; }
+    #pacchi .tooltip  { top: -80px; left: -50px; }
+    #surf .tooltip    { top: -80px; left: -50px; }
+
+    /* Posizione hotspot */
+    #aerei   { top: 35%; left: 62%; }
+    #calcio  { top: 18%; left: 82%; }
+    #pacchi  { top: 13%; left: 3%; }
+    #surf    { top: 25%; left: 30%; }
+
+    /* Tooltip stile arcade 8-bit */
+    .tooltip {
+        position: absolute;
+        background: #FFD700;   /* giallo arcade */
+        color: #fff;            /* testo bianco */
+        padding: 10px;
+        border: 4px solid #000; /* bordo nero spesso */
+        border-radius: 0;       /* stile quadrato anni 80 */
+        font-size: 16px;
+        font-family: 'Press Start 2P', monospace; /* font arcade */
+        display: none;
+        width: 250px;
+        z-index: 10;
+        text-align: center;
+        line-height: 1.2;
+        box-shadow: 4px 4px 0px #000; /* effetto 3D pixel */
+    }
+
+    .btn:hover .tooltip {
+        display: block;
+    }
+
+    @font-face {
+        font-family: 'PressStart';
+        src: url('fonts/PressStart2P-Regular.ttf') format('truetype');
+    }
+    
+    /*.tooltip {
+        text-shadow:
+            2px 2px 0 #000, 
+            -2px 2px 0 #000, 
+            2px -2px 0 #000, 
+            -2px -2px 0 #000; /* testo con effetto pixel nero 
+    }*/
+
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <!-- Sfondo -->
+  <img src="images/home_giochi.png" class="background">
+
+  <!-- Hotspot invisibili con tooltip -->
+  <div id="aerei" class="btn" onclick="goTo('gioco_aerei')">
+    <div class="tooltip">
+      <strong>Aerei</strong><br>
+      <em>Istruzioni:</em> Muovi in verticale la mano per<br>muoverti e aprila per sparare<br>
+      <em>Obiettivo:</em> Inserisci l'obiettivo qui
+    </div>
+  </div>
+
+  <div id="calcio" class="btn" onclick="goTo('gioco_calcio')">
+    <div class="tooltip">
+      <strong>Calcio</strong><br>
+      <em>Istruzioni:</em> Muovi la mano<br>
+      <em>Obiettivo:</em> Para più tiri possibili
+    </div>
+  </div>
+
+  <div id="pacchi" class="btn" onclick="goTo('gioco_pacchi')">
+    <div class="tooltip">
+      <strong>Pacchi</strong><br>
+      <em>Istruzioni:</em> Muoviti a destra o sinistra col busto<br>
+      <em>Obiettivo:</em> Raccogli i pacchi del colore<br>scritto sullo schermo
+    </div>
+  </div>
+
+  <div id="surf" class="btn" onclick="goTo('gioco_surf')">
+    <div class="tooltip">
+      <strong>Surf</strong><br>
+      <em>Istruzioni:</em> Ruota la testa per<br>andare a destra o sinistra<br>
+      <em>Obiettivo:</em> Surfa tra gli ostacoli
+    </div>
+  </div>
+
+</div>
+
+<script>
+function goTo(cartella) {
+  window.location.href = cartella + "/index.html";
+}
+</script>
+
+</body>
+</html>
