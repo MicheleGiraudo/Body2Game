@@ -8,6 +8,7 @@ let pallaImg
 let guantoImg
 let goalImg
 let parateImg
+let pausaImg
 
 //OBJECT
 let palla
@@ -32,7 +33,7 @@ let vGuanto = 20
 let secondi = 0
 let tempoInizioParata = 0 //per il timer prima che possa parare
 let tempoInizioAttesa = 0 //per il timer prima avvenga il tiro
-let tempoAttesaTiro = 2000
+let tempoAttesaTiro = 800
 
 //impostazioni del gioco
 let stato = "gioco" // "gioco" | "goal" | "attesa"
@@ -49,6 +50,9 @@ let modelLoaded = false
 //font per il counter delle parate
 let arcadeFont
 
+//pausa
+let schema = 1
+
 //SUONI
 let suonoParata
 let suonoGoal
@@ -62,6 +66,7 @@ function preload(){
     guantoImg = loadImage('./img/guanto.png')
     goalImg = loadImage('./img/goal.png')
     parateImg = loadImage('./img/parate.png')
+    pausaImg = loadImage('./img/pausa.png')
 
     //carica font per counter
     arcadeFont = loadFont('./font/PressStart2P-Regular.ttf')
@@ -85,7 +90,8 @@ function setup(){
     
     loadHandTrackingModel()
     
-    tempoInizioParata = millis() //inizializza timer
+    stato = "attesa"
+    tempoInizioAttesa = millis()
 }
 
 // Abilita audio al primo click
@@ -132,62 +138,81 @@ async function predictHand() {
         console.error('Errore predizione:', error);
     }
     
+    //loop ricorsivo, ogni 30ms richiama la funzione predictHand
     setTimeout(function() { predictHand(); }, 30);
 }
 
 function draw(){
-    if (stato === "gioco") {
-        background(bgimg)
+    if (schema === 1){
+        if (stato === "gioco") {
+            background(bgimg)
 
+            image(guanto.imgShow, guanto.x, guanto.y)
+            image(palla.imgShow, palla.x, palla.y, palla.size, palla.size)
+            image(parateImg, 390, 460)
+
+            moveBall()
+            prospettivaPalla()
+            checkInPorta()
+            checkParata()
+            
+            checkMano()
+                    
+            textFont(arcadeFont)
+            textSize(70)
+            stroke(0)
+            strokeWeight(4) // per il bordo
+            fill(255, 170, 0)
+            textAlign(RIGHT)
+            text(counterParate, 1030, 680)
+
+        } else if (stato === "goal") {
+            background(bgimg)
+            image(goalImg, 430, 120)
+
+            timerGoal++
+
+            if (timerGoal > durataGoal) {
+                resetPalla()
+                stato = "attesa"
+                tempoInizioAttesa = millis()
+            }
+            
+        } else if(stato === "attesa"){
+            // Disegna tutto ma con palla ferma
+            background(bgimg)
+            image(guanto.imgShow, guanto.x, guanto.y)
+            image(palla.imgShow, palla.x, palla.y, palla.size, palla.size)
+            image(parateImg, 390, 460)
+            
+            checkMano()
+            
+            textFont(arcadeFont);
+            textSize(70);
+            fill(255, 170, 0);
+            textAlign(RIGHT);
+            text(counterParate, 1030, 680);
+
+            // Controlla se è passato il tempo
+            if(millis() - tempoInizioAttesa > tempoAttesaTiro){
+                stato = "gioco"
+                pallaTirata = false // reset per nuovo tiro
+                tempoInizioParata = millis() //avvio del tempo prima che possa parare
+            }
+        }
+    } else if (schema === 0) {
+        // ridisegna il frame del gioco (fermo), se no diventerebbe nero
+        background(bgimg)
         image(guanto.imgShow, guanto.x, guanto.y)
         image(palla.imgShow, palla.x, palla.y, palla.size, palla.size)
         image(parateImg, 390, 460)
 
-        moveBall()
-        prospettivaPalla()
-        checkInPorta()
-        checkParata()
-        
-        checkMano()
-                
-        textFont(arcadeFont);
-        textSize(70);
-        fill(255, 170, 0);
-        textAlign(RIGHT);
-        text(counterParate, 1030, 680);
+        // overlay scuro (NON accumula)
+        noStroke()
+        fill(0, 150)   // qui regoli quanto scuro
+        rect(0, 0, width, height)
 
-    } else if (stato === "goal") {
-        background(bgimg)
-        image(goalImg, 430, 120)
-
-        timerGoal++
-
-        if (timerGoal > durataGoal) {
-            resetPalla()
-            stato = "attesa"
-            tempoInizioAttesa = millis()
-        }
-        
-    } else if(stato === "attesa"){
-        // Disegna tutto ma con palla ferma
-        background(bgimg)
-        image(guanto.imgShow, guanto.x, guanto.y)
-        image(palla.imgShow, palla.x, palla.y, palla.size, palla.size)
-        image(parateImg, 390, 460)
-        
-        checkMano()
-        
-        textFont(arcadeFont);
-        textSize(70);
-        fill(255, 170, 0);
-        textAlign(RIGHT);
-        text(counterParate, 1030, 680);
-
-        // Controlla se è passato il tempo
-        if(millis() - tempoInizioAttesa > tempoAttesaTiro){
-            stato = "gioco"
-            pallaTirata = false // reset per nuovo tiro
-        }
+        image(pausaImg, 430, -40)
     }
 }
 
@@ -204,9 +229,6 @@ function prospettivaPalla(){
 
 function checkInPorta(){
     if(palla.x >= 1300 || palla.x <= 160 || palla.y <= 120){
-        if(audioPronto){
-            console.log('Goal!')
-        }
         stato = "goal"
         timerGoal = 0
         counterParate = 0
@@ -226,8 +248,10 @@ function collisioneDelCerchio(cx, cy, r, rx, ry, rw, rh) {
 
 //parata possibile solo dopo 800 millisecondi
 function checkParata(){
-    //Blocca la parata prima degli 800ms
-    if (millis() - tempoInizioParata < 800) return;
+    //Blocca la parata prima del tempoAttesoTiro
+    if (millis() - tempoInizioParata < tempoAttesaTiro){
+        return;
+    }
 
     let guantoHit = {
         x: guanto.x + 20,
@@ -242,12 +266,10 @@ function checkParata(){
 
     if (collisioneDelCerchio(ballCX, ballCY, ballR, guantoHit.x, guantoHit.y, guantoHit.w, guantoHit.h)) {
         resetPalla()
-        if(audioPronto){
-            console.log('Parata!')
-        }
         counterParate++
         stato = "attesa"
         tempoInizioAttesa = millis()
+        tempoInizioParata = millis() 
         console.log("PARATA Totale: " + counterParate)
     }
 }
@@ -263,7 +285,6 @@ function resetPalla() {
     palla.size = palla.maxSize
     palla.startY = palla.y
     
-    tempoInizioParata = millis() //reset timer tiro
     pallaTirata = false // reset per il prossimo tiro
 }
 
@@ -305,4 +326,15 @@ function checkMano(){
         textSize(16);
         text("Nessuna mano", 160, 35);
     }
+}
+
+// gestione tasto ESC
+function keyPressed() {
+  if (keyCode === ESCAPE) {
+    if (schema === 1) {
+      schema = 0; // pausa
+    } else if (schema === 0) {
+      schema = 1; // torna al gioco
+    }
+  }
 }
