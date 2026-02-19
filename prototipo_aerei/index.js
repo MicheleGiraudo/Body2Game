@@ -200,7 +200,7 @@ function draw() {
     stroke(0)
     strokeWeight(4)
     fill(255, 170, 0)
-    text("Abbattuti: " + enemiesDestroyed, 30, 700)
+    text("Destroyed: " + enemiesDestroyed, 30, 700)
     
     // Disegna contatore munizioni / barra ricarica
     fill(255)
@@ -223,9 +223,10 @@ function draw() {
         rect(barX, barY, barWidth * reloadProgress, barHeight, 5)
         
         fill(255)
-        noStroke()
-        textAlign(CENTER)
-        text("RICARICA", barX + barWidth / 2, barY + 15)
+        stroke(0)
+        strokeWeight(3)
+        textAlign(LEFT)
+        text("RECHARGING", barX, barY + 40)
     } else {
         if (ammo <= 5) {
             fill(255, 0, 0)
@@ -237,7 +238,7 @@ function draw() {
         stroke(0)
         strokeWeight(4)
         fill(255, 170, 0)
-        text("Munizioni: " + ammo + "/" + MAX_AMMO, 20, 100)
+        text("Ammunition: " + ammo + "/" + MAX_AMMO, 20, 100)
     }
     
     // Disegna aereo se esiste
@@ -423,7 +424,7 @@ function draw() {
         strokeWeight(4)
         fill(255, 220, 0)
         textSize(50)
-        text("PREPARATI!", width / 2, height / 2 - 30)
+        text("GET READY!", width / 2, height / 2 - 30)
         
         fill(255)
         textSize(80)
