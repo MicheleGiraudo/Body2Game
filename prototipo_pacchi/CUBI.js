@@ -23,7 +23,7 @@ let pauseImg;
 
 let arcadeFont; // font pixel
 
-// --- Modelli ML5 per il tracking ---
+// Modelli ML5 per il tracking 
 let bodyPose;   // rileva la posa del corpo
 let handPose;   // rileva la posizione delle mani
 let poses = []; // risultati del body tracking
@@ -33,7 +33,7 @@ let video;       // stream della webcam
 
 let schema = 1; // 1 = in gioco - 0 = in pausa
 
-// --- Opzioni per il modello handPose ---
+// Opzioni per il modello handPose
 let options = {
   maxHands: 2,          // rileva fino a 2 mani
   flipped: false,       // immagine non specchiata
