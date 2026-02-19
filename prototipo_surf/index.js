@@ -130,7 +130,7 @@ function draw() {
 
     fill(255);
     textSize(35);
-    text("TEMPO: " + tempoFormattato, width / 2, height / 2 + 20);
+    text("TIME: " + tempoFormattato, width / 2, height / 2 + 20);
   }
 
   if (modelReady && facemesh && schema === 1) {
