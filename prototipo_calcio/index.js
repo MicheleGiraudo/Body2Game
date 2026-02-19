@@ -73,7 +73,7 @@ function preload(){
 }
 
 function setup(){
-    createCanvas(Ximg, Yimg)
+    createCanvas(windowWidth, windowHeight)
     frameRate(24)
 
     palla = new Palla(pallaImg, xPalla, yPalla)
@@ -142,6 +142,9 @@ async function predictHand() {
 }
 
 function draw(){
+    push()
+    scale(width / 1520, height / 705)
+
     if (schema === 1){
         if (stato === "gioco") {
             background(bgimg)
@@ -217,6 +220,8 @@ function draw(){
 
         image(pausaImg, 430, -40)
     }
+
+    pop()
 }
 
 function moveBall(){    
@@ -351,4 +356,8 @@ function keyPressed() {
       schema = 1; // torna al gioco
     }
   }
+}
+
+function windowResized() {
+    resizeCanvas(windowWidth, windowHeight)
 }
