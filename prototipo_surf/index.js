@@ -3,11 +3,16 @@ let surfistadx;
 let surfistasx;
 let protagonista;
 let oggetti = [];
-let scoglio, boaG, boaP, alga;
-let bgY1 = 0, bgY2;
+let scoglio;
+let boaG;
+let boaP;
+let alga;
+let bgY1 = 0;
+let bgY2;
 let bgVel = 5;
 
-let cuorePieno, cuoreVuoto;
+let cuorePieno;
+let cuoreVuoto;
 let maxVite = 3;
 let vite = maxVite;
 
@@ -45,7 +50,10 @@ function preload() {
 
   pausa = loadImage('./img/pause.png');
 
-  pixelFont = loadFont("./font/PressStart2P-Regular.ttf");
+  pixelFont = loadFont('./font/PressStart2P-Regular.ttf');
+
+  suonoGameOver = loadSound('./sounds/gameOverSound.mp3');
+  suonoDanno = loadSound('./sounds/hurtSound.mp3');
 }
 
 function setup() {
@@ -54,19 +62,16 @@ function setup() {
   bgY2 = -height;
   frameRate(30);
 
-  // Inizializza pausa
-  paused = new Pausa(pausa);
+  // Modifica qui larghezza e altezza dell'immagine di pausa
+  paused = new Pausa(pausa, 800, 500);
 
-  // Avvia cronometro
   startTime = millis();
   timerRunning = true;
 
-  // setup webcam
   video = createCapture(VIDEO);
   video.size(width, height);
   video.hide();
 
-  // Inizializza FaceMesh
   try {
     facemesh = ml5.faceMesh(video, modelLoaded);
   } catch (error) {
@@ -81,12 +86,10 @@ function modelLoaded() {
 
 function draw() {
 
-  // Aggiorna cronometro solo quando schema == 1 e vite > 0
   if (timerRunning && schema === 1 && vite > 0) {
     elapsedTime = millis() - startTime;
   }
 
-  // sfondo
   if (schema === 1) {
     image(bgimg, 0, bgY1, width, height);
     image(bgimg, 0, bgY2, width, height);
@@ -95,7 +98,22 @@ function draw() {
     if (bgY1 >= height) bgY1 = bgY2 - height;
     if (bgY2 >= height) bgY2 = bgY1 - height;
   } else if (schema === 2) {
-    image(paused.imgShows, 0, 0, width, height);
+    // Mostra il background fermo (senza aggiornare bgY1/bgY2)
+    image(bgimg, 0, bgY1, width, height);
+    image(bgimg, 0, bgY2, width, height);
+    // Mostra anche il protagonista e gli oggetti fermi
+    protagonista.show();
+    for (let i = 0; i < oggetti.length; i++) {
+      oggetti[i].show();
+    }
+    // Sovrapponi l'immagine di pausa centrata
+    
+    noStroke();
+    fill(0, 150);
+    rect(0, 0, width, height);
+
+    paused.show();
+    
   } else if (schema === 3) {
     background(0);
     textFont(pixelFont);
@@ -104,7 +122,6 @@ function draw() {
     textSize(75);
     text("GAME OVER", width / 2, height / 2 - 80);
 
-    // Mostra il tempo finale
     let secondiTotali = floor(elapsedTime / 1000);
     let minuti = floor(secondiTotali / 60);
     let secondi = secondiTotali % 60;
@@ -113,32 +130,31 @@ function draw() {
 
     fill(255);
     textSize(35);
-    text("TEMPO: " + tempoFormattato, width / 2, height / 2 + 20);
+    text("TIME: " + tempoFormattato, width / 2, height / 2 + 20);
   }
 
-  // FaceMesh predictions
   if (modelReady && facemesh && schema === 1) {
     getFacePredictions();
   }
 
-  // gestione ostacoli che arrivano dall'alto
   if (schema === 1) {
 
-    // mostra protagonista
     protagonista.update();
     protagonista.show();
 
-    // genera nuovi ostacoli
-    if (random(1) < 0.05) {
+    if (random(1) < 0.08) {
       let imgs = [scoglio, boaG, boaP, alga];
       oggetti.push(new Oggetto(random(imgs)));
     }
 
-    // muove e mostra oggetti
     for (let i = oggetti.length - 1; i >= 0; i--) {
       oggetti[i].move();
       oggetti[i].show();
       if (protagonista.collide(oggetti[i]) && !protagonista.invincibile) {
+        suonoDanno.setVolume(0.5);
+        suonoDanno.rate(0.5);
+        suonoDanno.play();
+
         vite--;
         protagonista.attivaInvincibilita();
         oggetti.splice(i, 1);
@@ -149,7 +165,6 @@ function draw() {
       }
     }
 
-    // disegna cuori vite
     let spazio = 50;
     let sizeCuore = 100;
     for (let i = 0; i < maxVite; i++) {
@@ -162,7 +177,6 @@ function draw() {
       }
     }
 
-    // Mostra cronometro in gioco
     let secondiTotali = floor(elapsedTime / 1000);
     let minuti = floor(secondiTotali / 60);
     let secondi = secondiTotali % 60;
@@ -176,14 +190,16 @@ function draw() {
     text(tempoFormattato, width - 20, 20);
   }
 
-  // GAME OVER
+  // GAME OVER - il suono parte UNA SOLA VOLTA quando le vite arrivano a 0
   if (vite <= 0 && schema !== 3) {
-    timerRunning = false; // Ferma il cronometro
+    timerRunning = false;
     schema = 3;
+    suonoGameOver.setVolume(0.5);
+    suonoGameOver.rate(0.5);
+    suonoGameOver.play();
   }
 }
 
-// funzione per ottenere la posizione del naso
 function getFacePredictions() {
   if (!facemesh) return;
   facemesh.detect(video, gotFaces);
@@ -207,7 +223,7 @@ function gotFaces(results) {
   }
 }
 
-// pausa con tasto ESC
+// tasto esc per la pausa
 function keyPressed() {
   if (keyCode === ESCAPE) {
     if (schema === 1) {
@@ -215,7 +231,7 @@ function keyPressed() {
       timerRunning = false;
     } else if (schema === 2) {
       schema = 1;
-      startTime = millis() - elapsedTime; // riprendi dal punto giusto
+      startTime = millis() - elapsedTime;
       timerRunning = true;
     }
   }
