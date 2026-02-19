@@ -223,6 +223,7 @@ function gotFaces(results) {
   }
 }
 
+// tasto esc per la pausa
 function keyPressed() {
   if (keyCode === ESCAPE) {
     if (schema === 1) {
