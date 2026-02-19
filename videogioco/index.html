@@ -88,6 +88,50 @@
         font-family: 'PressStart';
         src: url('fonts/PressStart2P-Regular.ttf') format('truetype');
     }
+
+    .container {
+      position: relative;
+      width: 100%;
+      height: 100vh;
+    }
+
+    /* animazione comune */
+    .arrow {
+      position: absolute;
+      width: 50px;
+      animation: bounce 0.8s infinite ease-in-out;
+    }
+
+    /* posizioni personalizzate */
+    .arrow1 {
+      top: 15px;
+      left: 125px;
+    }
+
+    .arrow2 {
+      top: 130px;
+      left: 550px;
+    }
+
+    .arrow3 {
+      top: 60px;
+      right: 135px;
+    }
+
+    .arrow4 {
+      top: 140px;
+      right: 500px;
+    }
+
+    /* animazione */
+    @keyframes bounce {
+      0%   { transform: translateY(0px); }
+      50%  { transform: translateY(10px); }
+      100% { transform: translateY(0px); }
+    }
+
+
+
     
     /*.tooltip {
         text-shadow:
@@ -106,6 +150,12 @@
 
   <!-- Sfondo -->
   <img src="images/home_giochi.png" class="background">
+
+  <!-- Frecce -->
+  <img src="images/freccia.png" class="arrow arrow1">
+  <img src="images/freccia.png" class="arrow arrow2">
+  <img src="images/freccia.png" class="arrow arrow3">
+  <img src="images/freccia.png" class="arrow arrow4">
 
   <!-- Hotspot invisibili con tooltip -->
   <div id="aerei" class="btn" onclick="goTo('gioco_aerei')">
