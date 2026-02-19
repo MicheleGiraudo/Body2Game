@@ -24,20 +24,14 @@ let yGuanto = 190
 let Ximg = 1520 
 let Yimg = 705
 
-//velocita oggetti
-let vPalla = 40
-let t = 1
-let vGuanto = 20
-
 //tempo
-let secondi = 0
 let tempoInizioParata = 0 //per il timer prima che possa parare
-let tempoInizioAttesa = 0 //per il timer prima avvenga il tiro
+let tempoInizioAttesa = 0 //per il timer prima che avvenga il tiro
 let tempoAttesaTiro = 800
 
 //impostazioni del gioco
 let stato = "gioco" // "gioco" | "goal" | "attesa"
-let timerGoal = 0
+let timerGoal = 0 // timer quando viene subito goal, per il tempo che viene visuaizzata l'immagine
 let durataGoal = 72 
 let counterParate = 0 
 let pallaTirata = false
@@ -218,7 +212,7 @@ function draw(){
 
         // overlay scuro (NON accumula)
         noStroke()
-        fill(0, 150)   // qui regoli quanto scuro
+        fill(0, 150)   // regoli quanto scuro
         rect(0, 0, width, height)
 
         image(pausaImg, 430, -40)
