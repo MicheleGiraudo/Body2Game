@@ -24,7 +24,7 @@ let yGuanto = 190
 let Ximg = 1520 
 let Yimg = 705
 
-//V OGGETTI
+//velocita oggetti
 let vPalla = 40
 let t = 1
 let vGuanto = 20
@@ -104,6 +104,7 @@ function mousePressed() {
     console.log('Audio attivato!')
 }
 
+//funzione asincrona, se non il try non viene eseguito il programma non si interrompe e da solo un input di errore
 async function loadHandTrackingModel() {
     try {
         model = await handpose.load();
@@ -115,6 +116,7 @@ async function loadHandTrackingModel() {
     }
 }
 
+//funzione asincrona, se non il try non viene eseguito il programma non si interrompe e da solo un input di errore
 async function predictHand() {
     if (!modelLoaded || !model) return;
     
