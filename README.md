@@ -1,6 +1,9 @@
 PCTO - 2026
 Michele Giraudo, Matteo Risso, Daniele Revello, Mattia Valfré
+
+
 🎮 Body2Game
+
 
 Body2Game is a game development project focused on ludic rehabilitation for people with Multiple Sclerosis (MS).
 The project uses p5.js and body-based interactions to transform physical therapy exercises into engaging and motivating mini-games.
