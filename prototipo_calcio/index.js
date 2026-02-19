@@ -40,6 +40,7 @@ let stato = "gioco" // "gioco" | "goal" | "attesa"
 let timerGoal = 0
 let durataGoal = 72 
 let counterParate = 0 
+let pallaTirata = false
 
 // Variabili per il tracciamento della mano
 let handX = 0
@@ -84,6 +85,7 @@ function setup(){
     palla = new Palla(pallaImg, xPalla, yPalla)
     guanto = new Guanto(guantoImg, xGuanto, yGuanto)
     
+    //attiva telecamera
     video = createCapture(VIDEO);
     video.size(640, 480);
     video.hide();
@@ -98,6 +100,7 @@ function setup(){
 function mousePressed() {
     userStartAudio()
     audioPronto = true
+    suonoParata.setVolume(0.2) //abbasa il volume
     console.log('Audio attivato!')
 }
 
@@ -198,7 +201,11 @@ function draw(){
                 stato = "gioco"
                 pallaTirata = false // reset per nuovo tiro
                 tempoInizioParata = millis() //avvio del tempo prima che possa parare
-            }
+            }    
+            if (!pallaTirata && audioPronto) {
+                suonoCalcio.play() 
+                pallaTirata = true
+            }     
         }
     } else if (schema === 0) {
         // ridisegna il frame del gioco (fermo), se no diventerebbe nero
@@ -222,21 +229,28 @@ function moveBall(){
 }
 
 function prospettivaPalla(){
+    //cambiare gradualmente la dimensione della palla in base alla sua posizione verticale
+    //(prospettiva della palla che si rimpisciolisce)
     let t = map(palla.y, palla.startY, 0, 0, 1)
     t = constrain(t, 0, 1)
     palla.size = lerp(palla.maxSize, palla.minSize, t)
 }
 
+//goal, palla tocca i pali
 function checkInPorta(){
     if(palla.x >= 1300 || palla.x <= 160 || palla.y <= 120){
         stato = "goal"
         timerGoal = 0
         counterParate = 0
+        if (audioPronto){
+            suonoGoal.play()
+        } 
     }
 }
 
-//parata 
+//parata(collisione tra cerchio e rettangolo)
 function collisioneDelCerchio(cx, cy, r, rx, ry, rw, rh) {
+    //trova il punto del rettangolo più vicino al centro del cerchio
     let closestX = constrain(cx, rx, rx + rw)
     let closestY = constrain(cy, ry, ry + rh)
 
@@ -271,6 +285,7 @@ function checkParata(){
         tempoInizioAttesa = millis()
         tempoInizioParata = millis() 
         console.log("PARATA Totale: " + counterParate)
+        if (audioPronto) suonoParata.play()
     }
 }
 
@@ -298,9 +313,10 @@ function mouseMoved() {
     }
 }
 
-//controllo della mano
+//controllo della mano, scrtta in alto a sinistra
 function checkMano(){
     if (!modelLoaded) {
+        //arancione, sta trovando la mano
         textFont('sans-serif')
         fill(255, 165, 0);
         noStroke();
@@ -310,6 +326,7 @@ function checkMano(){
         text("Caricamento modello...", 210, 35);
     }
     else if (handDetected) {
+        //verde, ha trovato la mano
         textFont('sans-serif')
         fill(0, 255, 0);
         noStroke();
@@ -318,6 +335,7 @@ function checkMano(){
         textSize(16);
         text("Mano rilevata", 150, 35);
     } else {
+        //rosso, non ha trovato la mano
         textFont('sans-serif')
         fill(255, 0, 0);
         noStroke();
@@ -328,7 +346,7 @@ function checkMano(){
     }
 }
 
-// gestione tasto ESC
+// gestione tasto esc
 function keyPressed() {
   if (keyCode === ESCAPE) {
     if (schema === 1) {
