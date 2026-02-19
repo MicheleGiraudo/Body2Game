@@ -32,6 +32,7 @@ JavaScript / HTML / CSS – Web-based deployment
 Body & Hand Tracking – Interaction through movement
 
 👥 Team Members
+
 🎨 Michele Giraudo
 
 Role: Project Manager, Graphics Designer, Reporter
