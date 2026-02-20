@@ -27,7 +27,7 @@ let ammo = 30
 const MAX_AMMO = 30
 let isReloading = false
 let reloadStartTime = 0
-const RELOAD_TIME = 10000 // 3 secondi di ricarica in millisecondi
+const RELOAD_TIME = 10000 // 10 secondi di ricarica in millisecondi
 
 //INGRANAGGI
 let gear
@@ -54,9 +54,11 @@ let img_pause
 let gameOver = false
 let gameStartTime = 0
 let gameCanStart = false
-const DELAY_BEFORE_ENEMIES = 10000 // 10 secondi in millisecondi
+let lastCountdownSecond = -1
+const DELAY_BEFORE_ENEMIES = 7000 // 10 secondi in millisecondi
 let isPaused = false
 let enemiesDestroyed = 0
+let gameOverSoundPlayed = false
 
 //HAND TRACKING
 let model, video, predictions = []
@@ -72,7 +74,20 @@ let isInvincible = false
 let invincibleStartTime = 0
 const INVINCIBLE_TIME = 2000 // 2 secondi
 
+//SUONI
+let sound_shoot
+let sound_reload
+let sound_explosion
+let sound_countdown
+let sound_powerup
+let sound_gameOver
+
+//PULSANTI
+let btnRestart, btnMenu
+let buttonsVisible = false
+
 function preload() {
+    //immagini
     bimg_sky1 = loadImage('./img/cielo.png')
     bimg_sky2 = loadImage('./img/cielo1.png')
     img_plane = loadImage('./img/aereo_utente.png')
@@ -82,113 +97,149 @@ function preload() {
     img_heartFull = loadImage('./img/cuorePieno.png')
     img_heartEmpty = loadImage('./img/cuoreVuoto.png')
     img_pause = loadImage('./img/pause.png')
-    arcadeFont = loadFont('./font/PressStart2P-Regular.ttf')
-
-    // array parte da 0 invece che da 1
     for (let i = 0; i < 6; i++) {
         img_explosions[i] = loadImage("./img/esplosione" + (i + 1) + ".png");
     }
+
+    //font
+    arcadeFont = loadFont('./font/PressStart2P-Regular.ttf')
+
+    //suoni
+    sound_shoot = new Howl({
+        src: ['./sound/gunShot.mp3'],
+        volume: 0.5,
+        pool: 5
+    })
+    sound_reload = new Howl({
+        src: ['./sound/gunLoading.mp3'],
+        volume: 0.5,
+        pool: 1
+    })
+    sound_explosion = new Howl({
+        src: ['./sound/explosion.mp3'],
+        volume: 0.5,
+        pool: 5
+    })
+    sound_countdown = new Howl({
+        src: ['./sound/countdown.mp3'],
+        volume: 0.5,
+        pool: 1
+    })
+    sound_powerup = new Howl({
+        src: ['./sound/powerUp.mp3'],
+        volume: 0.7,
+        pool: 1
+    })
+    sound_gameOver = new Howl({
+        src: ['./sound/gameOver.mp3'],
+        volume: 2,
+        pool: 1
+    })
 }
 
 function setup() {
-    const canvas = createCanvas(1515, 777)
+    const canvas = createCanvas(windowWidth, windowHeight)
     canvas.parent('canvasContainer')
     
     plane = new Plane(img_plane, plane_x, plane_y)
-    frameRate(50)
+    frameRate(70)
     
-    // Inizializza video capture per hand tracking
     video = createCapture(VIDEO, () => {
         loadHandTrackingModel()
     })
     video.size(320, 240)
     video.hide()
     
-    // Imposta il tempo di inizio del gioco
+    gameStartTime = millis()
+
+    // Crea pulsanti Restart e Menu
+    btnRestart = createButton('▶ RESTART')
+    btnRestart.parent('canvasContainer')
+    styleButton(btnRestart, '#FFD700', '#000')
+    btnRestart.mousePressed(restartGame)
+    btnRestart.hide()
+
+    btnMenu = createButton('⌂ MENU')
+    btnMenu.parent('canvasContainer')
+    styleButton(btnMenu, '#FF4444', '#fff')
+    btnMenu.mousePressed(() => window.location.href = '../index.html')
+    btnMenu.hide()
+}
+
+function styleButton(btn, bgColor, textColor) {
+    btn.style('font-family', 'monospace')
+    btn.style('font-size', '16px')
+    btn.style('background', bgColor)
+    btn.style('color', textColor)
+    btn.style('border', '4px solid #000')
+    btn.style('padding', '14px 28px')
+    btn.style('cursor', 'pointer')
+    btn.style('position', 'absolute')
+    btn.style('box-shadow', '4px 4px 0px #000')
+    btn.style('letter-spacing', '2px')
+    btn.elt.onmouseover = () => btn.style('transform', 'translate(-2px,-2px)')
+    btn.elt.onmouseout  = () => btn.style('transform', 'translate(0,0)')
+}
+
+function showButtons() {
+    if (buttonsVisible) return
+    buttonsVisible = true
+    let rect = document.querySelector('canvas').getBoundingClientRect()
+    let container = document.getElementById('canvasContainer').getBoundingClientRect()
+    let cx = rect.left - container.left + rect.width / 2
+    let cy = rect.top - container.top + rect.height / 2
+    btnRestart.position(cx - 160, cy + 130)
+    btnMenu.position(cx + 20, cy + 130)
+    btnRestart.show()
+    btnMenu.show()
+}
+
+function hideButtons() {
+    buttonsVisible = false
+    btnRestart.hide()
+    btnMenu.hide()
+}
+
+function restartGame() {
+    hideButtons()
+    gameOver = false
+    gameOverSoundPlayed = false
+    isPaused = false
+    lives = MAX_LIVES
+    ammo = MAX_AMMO
+    isReloading = false
+    enemiesDestroyed = 0
+    isInvincible = false
+    gameCanStart = false
+    lastCountdownSecond = -1
+    obstacles.length = 0
+    shots.length = 0
+    gears.length = 0
+    explosions.length = 0
+    handY = null
+    bg_x1 = 0
+    bg_x2 = 1515
+    plane = new Plane(img_plane, plane_x, plane_y)
     gameStartTime = millis()
 }
 
-async function loadHandTrackingModel() {
-    // Carica il modello MediaPipe handpose
-    model = await handpose.load()
-    predictHand()
-}
-
-async function predictHand() {
-    if (video && video.elt) {
-        // Ottieni predizioni della mano
-        predictions = await model.estimateHands(video.elt)
-        
-        if (predictions.length > 0) {
-            // Calcola posizione Y media della mano (basata sul palmo)
-            let prediction = predictions[0]
-            let palmY = prediction.landmarks[0][1] // Punto base del palmo
-            
-            // Mappa la posizione Y dalla webcam al canvas del gioco
-            // Video: 0-240, Game: 30-(777-30)
-            handY = map(palmY, 0, 240, 30, 747)
-            
-            // Determina se la mano è chiusa (pugno)
-            isHandClosed = detectHandClosed(prediction)
-        } else {
-            handY = null
-            isHandClosed = false
-        }
-    }
-    
-    setTimeout(() => predictHand(), 50)
-}
-
-function detectHandClosed(prediction) {
-    // Rileva se la mano è chiusa calcolando le distanze tra punta e base delle dita
-    let annotations = prediction.annotations
-    
-    // Punti di riferimento: base delle dita e polso
-    let wrist = prediction.landmarks[0]
-    
-    // Calcola distanze tra punta delle dita e polso
-    let thumbTip = annotations.thumb[3]
-    let indexTip = annotations.indexFinger[3]
-    let middleTip = annotations.middleFinger[3]
-    let ringTip = annotations.ringFinger[3]
-    let pinkyTip = annotations.pinky[3]
-    
-    // Calcola distanze
-    let thumbDist = dist(thumbTip[0], thumbTip[1], wrist[0], wrist[1])
-    let indexDist = dist(indexTip[0], indexTip[1], wrist[0], wrist[1])
-    let middleDist = dist(middleTip[0], middleTip[1], wrist[0], wrist[1])
-    let ringDist = dist(ringTip[0], ringTip[1], wrist[0], wrist[1])
-    let pinkyDist = dist(pinkyTip[0], pinkyTip[1], wrist[0], wrist[1])
-    
-    // Calcola distanza media
-    let avgDist = (thumbDist + indexDist + middleDist + ringDist + pinkyDist) / 5
-    
-    // Se la distanza media è sotto una soglia, la mano è chiusa
-    return avgDist < 100
-}
-
 function draw() {
-    if (isPaused) {
-        image(img_pause, width / 2 - img_pause.width / 2, height / 2 - img_pause.height / 2)
-        return
-    }
     // Controlla se sono passati 10 secondi
-    if (!gameCanStart && millis() - gameStartTime >= DELAY_BEFORE_ENEMIES) {
-    gameCanStart = true
+    if (!gameCanStart && !isPaused && millis() - gameStartTime >= DELAY_BEFORE_ENEMIES) {
+        gameCanStart = true
     }
     
-    // Gestione ricarica munizioni
-    if (isReloading) {
+    // Gestione ricarica munizioni (solo se non in pausa)
+    if (isReloading && !isPaused) {
         let reloadProgress = millis() - reloadStartTime
         if (reloadProgress >= RELOAD_TIME) {
-            // Ricarica completata
             isReloading = false
             ammo = MAX_AMMO
         }
     }
     
-    // Loop dello sfondo (si ferma se game over)
-    if (!gameOver) {
+    // Loop dello sfondo (si ferma se game over o pausa)
+    if (!gameOver && !isPaused) {
         bg_x1 -= bg_speed
         bg_x2 -= bg_speed
     }
@@ -196,7 +247,7 @@ function draw() {
     image(bimg_sky1, bg_x1, 0, width, height)
     image(bimg_sky2, bg_x2, 0, width, height)
     
-    if (!gameOver) {
+    if (!gameOver && !isPaused) {
         if (bg_x1 <= -width) {
             bg_x1 = bg_x2 + width
         }
@@ -216,65 +267,62 @@ function draw() {
         }
     }
 
-    // Disegna contatore aerei abbattuti in alto a destra
+    // Disegna contatore aerei abbattuti
     textFont(arcadeFont)
     textSize(20)
     textAlign(LEFT)
     stroke(0)
     strokeWeight(4)
     fill(255, 170, 0)
-    text("Abbattuti: " + enemiesDestroyed, 30, 700)
+    text("Destroyed: " + enemiesDestroyed, 30, 700)
     
-    // Disegna contatore munizioni in alto a sinistra sotto i cuori
+    // Disegna contatore munizioni / barra ricarica
     fill(255)
     textSize(24)
     textAlign(LEFT)
     
     if (isReloading) {
-        // Mostra barra di ricarica
         let reloadProgress = (millis() - reloadStartTime) / RELOAD_TIME
+        // Se in pausa, congela il progresso visivo
+        if (isPaused) reloadProgress = (reloadStartTime > 0) ? (reloadStartTime) / RELOAD_TIME : reloadProgress
         let barWidth = 180
         let barHeight = 20
         let barX = 20
         let barY = 90
         
-        // Sfondo barra
         fill(50)
         rect(barX, barY, barWidth, barHeight, 5)
         
-        // Progresso ricarica
         fill(255, 200, 0)
         rect(barX, barY, barWidth * reloadProgress, barHeight, 5)
         
-        // Testo "RICARICA"
         fill(255)
-        textAlign(CENTER)
-        text("RICARICA", barX + barWidth / 2, barY + 15)
+        stroke(0)
+        strokeWeight(3)
+        textAlign(LEFT)
+        text("RECHARGING", barX, barY + 40)
     } else {
-        // Mostra contatore munizioni
         if (ammo <= 5) {
-            fill(255, 0, 0) // Rosso se poche munizioni
+            fill(255, 0, 0)
         } else {
             fill(255)
         }
         textFont(arcadeFont)
         textSize(30)
-        stroke(0)         // colore bordo
-        strokeWeight(4)    // spessore bordo
+        stroke(0)
+        strokeWeight(4)
         fill(255, 170, 0)
-        text("Munizioni: " + ammo + "/" + MAX_AMMO, 20, 100)
+        text("Ammunition: " + ammo + "/" + MAX_AMMO, 20, 100)
     }
     
     // Disegna aereo se esiste
     if (plane) {
-        // Aggiorna invincibilità
         if (isInvincible) {
             if (millis() - invincibleStartTime >= INVINCIBLE_TIME) {
                 isInvincible = false
             }
         }
 
-        // Lampeggio: mostra l'aereo a intervalli di 100ms durante l'invincibilità
         let showPlane = true
         if (isInvincible) {
             showPlane = Math.floor((millis() - invincibleStartTime) / 200) % 2 === 0
@@ -284,75 +332,52 @@ function draw() {
             image(plane.imgShow, plane.x, plane.y)
         }
         
-        // CONTROLLO CON HAND TRACKING
-        if (handY !== null && !gameOver) {
-            // Muovi l'aereo alla posizione Y della mano con smooth transition
+        // CONTROLLO CON HAND TRACKING (solo se non in pausa)
+        if (handY !== null && !gameOver && !isPaused) {
             let targetY = constrain(handY - plane.height / 2, 30, height - plane.height - 30)
-            plane.y = lerp(plane.y, targetY, 0.3) // Smooth movement
-        }
-        
-        // CONTROLLO CON TASTIERA (alternativo/backup)
-        if(keyIsDown(87)) { 
-            plane.moveUp()
-        }
-        if(keyIsDown(83)) { 
-            plane.moveDown()
+            plane.y = lerp(plane.y, targetY, 0.3)
         }
     }
     
-    // spawn aerei nemici ogni tot frame SOLO DOPO IL DELAY
-    if (gameCanStart && frameCount % plane_enemy_spawnRate === 0 && !gameOver) {
+    // Spawn aerei nemici (solo se non in pausa)
+    if (gameCanStart && !isPaused && frameCount % plane_enemy_spawnRate === 0 && !gameOver) {
         obstacles.push(new PlaneEnemy(img_plane_enemy))
     }
     
-    // spawn ingranaggi ogni tot frame SOLO DOPO IL DELAY
-    if (gameCanStart && frameCount % gear_spawnRate === 0 && !gameOver) {
+    // Spawn ingranaggi (solo se non in pausa)
+    if (gameCanStart && !isPaused && frameCount % gear_spawnRate === 0 && !gameOver) {
         gears.push(new Gear(img_gear))
     }
 
-    // SPARO CON HAND TRACKING (quando la mano è aperta, continuo)
-    if (!isHandClosed && handY !== null && frameCount % bullet_spawnRate === 0 && !gameOver && plane && !isReloading) {
+    // SPARO CON HAND TRACKING (solo se non in pausa)
+    if (!isHandClosed && !isPaused && handY !== null && frameCount % bullet_spawnRate === 0 && !gameOver && plane && !isReloading) {
         if (ammo > 0) {
             shots.push(new Bullet(img_bullet, plane.x + plane.width, plane.y + plane.height/2))
+            sound_shoot.play()
             ammo--
-            
+
             if (ammo <= 0) {
                 isReloading = true
                 reloadStartTime = millis()
+                sound_reload.play()
             }
         }
     }
     previousHandClosed = isHandClosed
-    
-    // spawn proiettili con tastiera (alternativo/backup)
-    if(frameCount % bullet_spawnRate === 0 && keyIsDown(32) && !gameOver && plane && !isReloading) {
-        if (ammo > 0) {
-            shots.push(new Bullet(img_bullet, plane.x + plane.width, plane.y + plane.height/2))
-            ammo--
-            
-            // Se finiscono le munizioni, inizia la ricarica
-            if (ammo <= 0) {
-                isReloading = true
-                reloadStartTime = millis()
-            }
-        }
-    }
-    
-    // Aggiorna e disegna proiettili (si fermano se game over)
+
+    // Aggiorna e disegna proiettili
     for (let i = shots.length - 1; i >= 0; i--) {
-        if (!gameOver) {
+        if (!gameOver && !isPaused) {
             shots[i].move()
         }
         shots[i].show()
 
-        // Rimuovi se fuori schermo
         if (shots[i].offscreen()) {
             shots.splice(i, 1)
             continue
         }
 
-        // Controlla collisione proiettile-aereo nemico
-        if (!gameOver) {
+        if (!gameOver && !isPaused) {
             for (let j = obstacles.length - 1; j >= 0; j--) {
                 let distance = dist(
                     shots[i].x + shots[i].imgShow.width / 2,
@@ -361,18 +386,15 @@ function draw() {
                     obstacles[j].y + obstacles[j].imgShow.height / 2
                 )
                 
-                // Collisione proiettile-aereo nemico
                 let collision_distance = (shots[i].imgShow.width + obstacles[j].imgShow.width) / 2
-                if(distance < collision_distance) {
-                    // Crea esplosione nel punto di impatto
+                if (distance < collision_distance) {
                     explosions.push(new Explosion(
                         obstacles[j].x, 
                         obstacles[j].y, 
                         obstacles[j].imgShow.width, 
                         obstacles[j].imgShow.height
                     ))
-                    
-                    // Rimuovi aereo nemico e proiettile
+                    sound_explosion.play()
                     enemiesDestroyed++
                     obstacles.splice(j, 1)
                     shots.splice(i, 1)
@@ -382,21 +404,20 @@ function draw() {
         }
     }
     
-    // Aggiorna e disegna ingranaggi (si fermano se game over)
+    // Aggiorna e disegna ingranaggi
     for (let i = gears.length - 1; i >= 0; i--) {
-        if (!gameOver) {
+        if (!gameOver && !isPaused) {
             gears[i].move()
         }
         gears[i].show()
 
-        // Rimuovi se fuori schermo
         if (gears[i].offscreen()) {
             gears.splice(i, 1)
             continue
         }
 
-        // Controlla collisione ingranaggio-aereo (recupero vita)
-        if (plane && !gameOver && gears[i].collision(plane)) {
+        if (plane && !gameOver && !isPaused && gears[i].collision(plane)) {
+            sound_powerup.play()
             if (lives < MAX_LIVES) {
                 lives++
             }
@@ -404,44 +425,37 @@ function draw() {
         }
     }
 
-    // Aggiorna e disegna aerei nemici (si fermano se game over)
+    // Aggiorna e disegna aerei nemici
     for (let i = obstacles.length - 1; i >= 0; i--) {
-        if (!gameOver) {
+        if (!gameOver && !isPaused) {
             obstacles[i].move()
         }
         obstacles[i].show()
 
-        // Rimuovi se fuori schermo
         if (obstacles[i].offscreen()) {
             obstacles.splice(i, 1)
             continue
         }
 
-        // distanza tra aereo e aereo nemico
-        if (plane && !gameOver) {
+        if (plane && !gameOver && !isPaused) {
             let distance = dist(
                 plane.x + plane.width / 2,
                 plane.y + plane.height / 2,
                 obstacles[i].x + obstacles[i].imgShow.width / 2,
                 obstacles[i].y + obstacles[i].imgShow.height / 2
             )
-            // collisione aereo - aereo nemico
-            if(plane.collision(distance, obstacles[i])) {
-                // Rimuovi aereo nemico
+            if (plane.collision(distance, obstacles[i])) {
                 obstacles.splice(i, 1)
 
-                // Perdi una vita solo se non invincibile
                 if (!isInvincible) {
                     lives--
                     
-                    // Attiva invincibilità e lampeggio
                     isInvincible = true
                     invincibleStartTime = millis()
                     
-                    // Crea esplosione
                     explosions.push(new Explosion(plane.x, plane.y, plane.width, plane.height))
+                    sound_explosion.play()
                     
-                    // Se non ci sono più vite, game over
                     if (lives <= 0) {
                         plane = null
                         gameOver = true
@@ -453,7 +467,9 @@ function draw() {
     
     // Aggiorna e disegna esplosioni
     for (let i = explosions.length - 1; i >= 0; i--) {
-        explosions[i].update()
+        if (!isPaused) {
+            explosions[i].update()
+        }
         explosions[i].show()
         
         if (explosions[i].finished()) {
@@ -461,7 +477,7 @@ function draw() {
         }
     }
     
-    // Indicatore visivo dello stato della mano
+    // Indicatore visivo stato della mano
     if (predictions.length > 0 && !gameOver) {
         fill(isHandClosed ? color(255, 0, 0) : color(0, 255, 0))
         noStroke()
@@ -482,11 +498,15 @@ function draw() {
         strokeWeight(4)
         fill(255, 220, 0)
         textSize(50)
-        text("PREPARATI!", width / 2, height / 2 - 30)
+        text("GET READY!", width / 2, height / 2 - 30)
         
         fill(255)
         textSize(80)
         text(secondsLeft, width / 2, height / 2 + 50)
+        if (secondsLeft !== lastCountdownSecond) {
+            lastCountdownSecond = secondsLeft
+            sound_countdown.play()
+        }
     }
 
     // Messaggio Game Over
@@ -495,11 +515,79 @@ function draw() {
         textSize(72)
         textAlign(CENTER, CENTER)
         text("GAME OVER", width / 2, height / 2)
+        if (!gameOverSoundPlayed) {
+            gameOverSoundPlayed = true
+            sound_gameOver.play()
+            showButtons()
+        }
+    }
+
+    // Overlay pausa â€" disegnato PER ULTIMO cosÃ¬ copre tutto il gioco
+    if (isPaused) {
+        fill(0, 0, 0, 150)
+        noStroke()
+        rect(0, 0, width, height)
+        image(img_pause, width / 2 - img_pause.width / 2, height / 2 - img_pause.height / 2)
+
+        // Scritta "press ESC to resume" sotto l'immagine di pausa
+        textFont(arcadeFont)
+        textAlign(CENTER, CENTER)
+        noStroke()
+        fill(200, 200, 200)
+        textSize(14)
+        text("Press ESC to resume", width / 2, height / 2 + img_pause.height / 2 + 40)
     }
 }
 
 function keyPressed() {
     if (keyCode === ESCAPE) {
         isPaused = !isPaused
+        if (isPaused) showButtons()
+        else hideButtons()
     }
+}
+
+async function loadHandTrackingModel() {
+    model = await handpose.load()
+    predictHand()
+}
+
+async function predictHand() {
+    if (video && video.elt) {
+        predictions = await model.estimateHands(video.elt)
+        
+        if (predictions.length > 0) {
+            let prediction = predictions[0]
+            let palmY = prediction.landmarks[0][1]
+            
+            handY = map(palmY, 0, 240, 30, 747)
+            isHandClosed = detectHandClosed(prediction)
+        } else {
+            handY = null
+            isHandClosed = false
+        }
+    }
+    
+    setTimeout(() => predictHand(), 50)
+}
+
+function detectHandClosed(prediction) {
+    let annotations = prediction.annotations
+    let wrist = prediction.landmarks[0]
+    
+    let thumbTip = annotations.thumb[3]
+    let indexTip = annotations.indexFinger[3]
+    let middleTip = annotations.middleFinger[3]
+    let ringTip = annotations.ringFinger[3]
+    let pinkyTip = annotations.pinky[3]
+    
+    let thumbDist = dist(thumbTip[0], thumbTip[1], wrist[0], wrist[1])
+    let indexDist = dist(indexTip[0], indexTip[1], wrist[0], wrist[1])
+    let middleDist = dist(middleTip[0], middleTip[1], wrist[0], wrist[1])
+    let ringDist = dist(ringTip[0], ringTip[1], wrist[0], wrist[1])
+    let pinkyDist = dist(pinkyTip[0], pinkyTip[1], wrist[0], wrist[1])
+    
+    let avgDist = (thumbDist + indexDist + middleDist + ringDist + pinkyDist) / 5
+    
+    return avgDist < 100
 }

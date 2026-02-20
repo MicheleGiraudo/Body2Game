@@ -24,22 +24,17 @@ let yGuanto = 190
 let Ximg = 1520 
 let Yimg = 705
 
-//V OGGETTI
-let vPalla = 40
-let t = 1
-let vGuanto = 20
-
 //tempo
-let secondi = 0
 let tempoInizioParata = 0 //per il timer prima che possa parare
-let tempoInizioAttesa = 0 //per il timer prima avvenga il tiro
+let tempoInizioAttesa = 0 //per il timer prima che avvenga il tiro
 let tempoAttesaTiro = 800
 
 //impostazioni del gioco
 let stato = "gioco" // "gioco" | "goal" | "attesa"
-let timerGoal = 0
+let timerGoal = 0 // timer quando viene subito goal, per il tempo che viene visuaizzata l'immagine
 let durataGoal = 72 
 let counterParate = 0 
+let pallaTirata = false
 
 // Variabili per il tracciamento della mano
 let handX = 0
@@ -58,6 +53,10 @@ let suonoParata
 let suonoGoal
 let suonoCalcio
 let audioPronto = false
+
+//PULSANTI
+let btnRestart, btnMenu
+let buttonsVisible = false
 
 function preload(){
     //carica foto 
@@ -84,6 +83,7 @@ function setup(){
     palla = new Palla(pallaImg, xPalla, yPalla)
     guanto = new Guanto(guantoImg, xGuanto, yGuanto)
     
+    //attiva telecamera
     video = createCapture(VIDEO);
     video.size(640, 480);
     video.hide();
@@ -92,15 +92,74 @@ function setup(){
     
     stato = "attesa"
     tempoInizioAttesa = millis()
+
+    // Crea pulsanti Restart e Menu
+    btnRestart = createButton('▶ RESTART')
+    styleButton(btnRestart, '#FFD700', '#000')
+    btnRestart.mousePressed(restartGame)
+    btnRestart.hide()
+
+    btnMenu = createButton('⌂ MENU')
+    styleButton(btnMenu, '#FF4444', '#fff')
+    btnMenu.mousePressed(() => window.location.href = '../index.html')
+    btnMenu.hide()
+}
+
+function styleButton(btn, bgColor, textColor) {
+    btn.style('font-family', 'monospace')
+    btn.style('font-size', '16px')
+    btn.style('background', bgColor)
+    btn.style('color', textColor)
+    btn.style('border', '4px solid #000')
+    btn.style('padding', '14px 28px')
+    btn.style('cursor', 'pointer')
+    btn.style('position', 'absolute')
+    btn.style('box-shadow', '4px 4px 0px #000')
+    btn.style('letter-spacing', '2px')
+    btn.elt.onmouseover = () => btn.style('transform', 'translate(-2px,-2px)')
+    btn.elt.onmouseout  = () => btn.style('transform', 'translate(0,0)')
+}
+
+function showButtons() {
+    if (buttonsVisible) return
+    buttonsVisible = true
+    let rect = document.querySelector('canvas').getBoundingClientRect()
+    let cx = rect.left + rect.width / 2
+    let cy = rect.top + rect.height / 2
+    btnRestart.position(cx - 160, cy + 130)
+    btnMenu.position(cx + 20, cy + 130)
+    btnRestart.show()
+    btnMenu.show()
+}
+
+function hideButtons() {
+    buttonsVisible = false
+    btnRestart.hide()
+    btnMenu.hide()
+}
+
+function restartGame() {
+    hideButtons()
+    schema = 1
+    stato = "attesa"
+    counterParate = 0
+    timerGoal = 0
+    pallaTirata = false
+    palla = new Palla(pallaImg, xPalla, yPalla)
+    guanto = new Guanto(guantoImg, xGuanto, yGuanto)
+    resetPalla()
+    tempoInizioAttesa = millis()
 }
 
 // Abilita audio al primo click
 function mousePressed() {
     userStartAudio()
     audioPronto = true
+    suonoParata.setVolume(0.2) //abbasa il volume
     console.log('Audio attivato!')
 }
 
+//funzione asincrona, se non il try non viene eseguito il programma non si interrompe e da solo un input di errore
 async function loadHandTrackingModel() {
     try {
         model = await handpose.load();
@@ -112,6 +171,7 @@ async function loadHandTrackingModel() {
     }
 }
 
+//funzione asincrona, se non il try non viene eseguito il programma non si interrompe e da solo un input di errore
 async function predictHand() {
     if (!modelLoaded || !model) return;
     
@@ -198,7 +258,11 @@ function draw(){
                 stato = "gioco"
                 pallaTirata = false // reset per nuovo tiro
                 tempoInizioParata = millis() //avvio del tempo prima che possa parare
-            }
+            }    
+            if (!pallaTirata && audioPronto) {
+                suonoCalcio.play() 
+                pallaTirata = true
+            }     
         }
     } else if (schema === 0) {
         // ridisegna il frame del gioco (fermo), se no diventerebbe nero
@@ -209,10 +273,20 @@ function draw(){
 
         // overlay scuro (NON accumula)
         noStroke()
-        fill(0, 150)   // qui regoli quanto scuro
+        fill(0, 150)   // regoli quanto scuro
         rect(0, 0, width, height)
 
         image(pausaImg, 430, -40)
+
+        // Scritta "press ESC to resume" in basso
+        textFont(arcadeFont)
+        textAlign(CENTER, CENTER)
+        noStroke()
+        fill(200, 200, 200)
+        textSize(14)
+        text("Press ESC to resume", width / 2, height * 0.88)
+
+        showButtons()
     }
 }
 
@@ -222,21 +296,28 @@ function moveBall(){
 }
 
 function prospettivaPalla(){
+    //cambiare gradualmente la dimensione della palla in base alla sua posizione verticale
+    //(prospettiva della palla che si rimpisciolisce)
     let t = map(palla.y, palla.startY, 0, 0, 1)
     t = constrain(t, 0, 1)
     palla.size = lerp(palla.maxSize, palla.minSize, t)
 }
 
+//goal, palla tocca i pali
 function checkInPorta(){
     if(palla.x >= 1300 || palla.x <= 160 || palla.y <= 120){
         stato = "goal"
         timerGoal = 0
         counterParate = 0
+        if (audioPronto){
+            suonoGoal.play()
+        } 
     }
 }
 
-//parata 
+//parata(collisione tra cerchio e rettangolo)
 function collisioneDelCerchio(cx, cy, r, rx, ry, rw, rh) {
+    //trova il punto del rettangolo più vicino al centro del cerchio
     let closestX = constrain(cx, rx, rx + rw)
     let closestY = constrain(cy, ry, ry + rh)
 
@@ -271,6 +352,7 @@ function checkParata(){
         tempoInizioAttesa = millis()
         tempoInizioParata = millis() 
         console.log("PARATA Totale: " + counterParate)
+        if (audioPronto) suonoParata.play()
     }
 }
 
@@ -298,9 +380,10 @@ function mouseMoved() {
     }
 }
 
-//controllo della mano
+//controllo della mano, scrtta in alto a sinistra
 function checkMano(){
     if (!modelLoaded) {
+        //arancione, sta trovando la mano
         textFont('sans-serif')
         fill(255, 165, 0);
         noStroke();
@@ -310,6 +393,7 @@ function checkMano(){
         text("Caricamento modello...", 210, 35);
     }
     else if (handDetected) {
+        //verde, ha trovato la mano
         textFont('sans-serif')
         fill(0, 255, 0);
         noStroke();
@@ -318,6 +402,7 @@ function checkMano(){
         textSize(16);
         text("Mano rilevata", 150, 35);
     } else {
+        //rosso, non ha trovato la mano
         textFont('sans-serif')
         fill(255, 0, 0);
         noStroke();
@@ -328,13 +413,14 @@ function checkMano(){
     }
 }
 
-// gestione tasto ESC
+// gestione tasto esc
 function keyPressed() {
   if (keyCode === ESCAPE) {
     if (schema === 1) {
       schema = 0; // pausa
     } else if (schema === 0) {
       schema = 1; // torna al gioco
+      hideButtons()
     }
   }
 }

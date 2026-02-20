@@ -23,7 +23,7 @@ let pauseImg;
 
 let arcadeFont; // font pixel
 
-// --- Modelli ML5 per il tracking ---
+// Modelli ML5 per il tracking 
 let bodyPose;   // rileva la posa del corpo
 let handPose;   // rileva la posizione delle mani
 let poses = []; // risultati del body tracking
@@ -33,13 +33,20 @@ let video;       // stream della webcam
 
 let schema = 1; // 1 = in gioco - 0 = in pausa
 
-// --- Opzioni per il modello handPose ---
+// Opzioni per il modello handPose
 let options = {
   maxHands: 2,          // rileva fino a 2 mani
   flipped: false,       // immagine non specchiata
   runtime: "mediapipe", // usa il runtime MediaPipe
   modelType: "full"     // modello completo (più preciso)
 };
+
+//PULSANTI
+let btnRestart, btnMenu
+let buttonsVisible = false
+
+// Suoni
+let suonoPacco, vittoria, perso
 
 function preload(){
     blu = loadImage("./img/regalo_blu.png");
@@ -101,6 +108,66 @@ function setup(){
     for(let k = 0; k < 7; k++){
         cubi.push(new Cubo());
     }
+
+    // Crea pulsanti Restart e Menu
+    btnRestart = createButton('▶ RESTART')
+    styleButton(btnRestart, '#FFD700', '#000')
+    btnRestart.mousePressed(restartGame)
+    btnRestart.hide()
+
+    btnMenu = createButton('⌂ MENU')
+    styleButton(btnMenu, '#FF4444', '#fff')
+    btnMenu.mousePressed(() => window.location.href = '../index.html')
+    btnMenu.hide()
+}
+
+function styleButton(btn, bgColor, textColor) {
+    btn.style('font-family', 'monospace')
+    btn.style('font-size', '16px')
+    btn.style('background', bgColor)
+    btn.style('color', textColor)
+    btn.style('border', '4px solid #000')
+    btn.style('padding', '14px 28px')
+    btn.style('cursor', 'pointer')
+    btn.style('position', 'absolute')
+    btn.style('box-shadow', '4px 4px 0px #000')
+    btn.style('letter-spacing', '2px')
+    btn.elt.onmouseover = () => btn.style('transform', 'translate(-2px,-2px)')
+    btn.elt.onmouseout  = () => btn.style('transform', 'translate(0,0)')
+}
+
+function showButtons() {
+    if (buttonsVisible) return
+    buttonsVisible = true
+    let rect = document.querySelector('canvas').getBoundingClientRect()
+    let cx = rect.left + rect.width / 2
+    let cy = rect.top + rect.height / 2
+    btnRestart.position(cx - 160, cy + 130)
+    btnMenu.position(cx + 20, cy + 130)
+    btnRestart.show()
+    btnMenu.show()
+}
+
+function hideButtons() {
+    buttonsVisible = false
+    btnRestart.hide()
+    btnMenu.hide()
+}
+
+function restartGame() {
+    hideButtons()
+    gameOver = false
+    win = false
+    schema = 1
+    pilaCont = 0
+    coloreOra = random(colori)
+    ultimoColoCam = millis()
+    cubi = []
+    pila = width - 100
+    for(let k = 0; k < 7; k++){
+        cubi.push(new Cubo());
+    }
+    personaggio = new Player()
 }
 
 function draw(){
@@ -172,6 +239,7 @@ function draw(){
     } else {
         // Partita terminata
         schermataFinale();
+        showButtons()
     }
 
     // Overlay pausa
@@ -182,8 +250,18 @@ function draw(){
         let imgSize = 400;
 
         imageMode(CENTER);
-        image(pauseImg, width / 2, height / 2, imgSize, imgSize); // icona centrata
+        image(pauseImg, width / 2, height / 2 - 60, imgSize, imgSize); // icona centrata
         imageMode(CORNER); // ripristina imageMode di default
+
+        // Scritta "press ESC to resume" in basso
+        textFont(arcadeFont)
+        textAlign(CENTER, CENTER)
+        noStroke()
+        fill(200, 200, 200)
+        textSize(14)
+        text("Press ESC to resume", width / 2, height / 2 + 140)
+
+        showButtons()
     }
 }
 
@@ -275,6 +353,7 @@ function keyPressed() {
       schema = 0; // mette in pausa
     } else {
       schema = 1; // riprende il gioco
+      hideButtons()
     }
 
   }
