@@ -1,0 +1,150 @@
+/* ===== Body & Global Styles ===== */
+body {
+    font-family: 'Poppins', Arial, sans-serif;
+    background-color: #1f3a57;
+    color: white;
+    margin: 0;
+    padding: 0;
+}
+
+a {
+    text-decoration: none;
+}
+
+/* ===== CREA MARGINE LATERALE REALE SU TUTTO IL SITO ===== */
+main table {
+    width: calc(100% - 120px); /* 60px per lato */
+    margin: 0 60px;            /* margine sinistra e destra uguale */
+}
+
+/* ===== Header ===== */
+header {
+    background: linear-gradient(90deg, #e66465, #9198e5);
+    padding: 0px 0;
+    text-align: center;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+header .logo {
+    width: 400px;
+    margin-bottom: 0px;
+}
+
+nav {
+    margin-top: 0px;
+}
+
+.button {
+    background-color: rgba(255,255,255,0.9);
+    color: #1f3a57;
+    font-weight: bold;
+    font-size: 1.3rem;
+    padding: 12px 25px;
+    border-radius: 25px;
+    border: none;
+    margin: 5px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.button:hover {
+    background-color: #f1c1c1;
+    color: #1f3a57;
+    transform: translateY(-2px);
+}
+
+/* ===== Section Titles ===== */
+.cornice {
+    background-color: rgba(255,255,255,0.85);
+    padding: 40px;
+    border-radius: 15px;
+    margin: 40px auto 20px auto;
+    max-width: 900px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.titolo {
+    font-size: 2.7rem;
+    color: #1f3a57;
+    font-weight: 700;
+    text-align: center;
+    margin: 0;
+}
+
+/* ===== Article Text ===== */
+.article, .article_sm, .article_smm {
+    font-family: 'Times New Roman', Times, serif;
+    line-height: 1.9;
+    font-size: 1.35rem; /* testo un po' più grande */
+    text-align: justify;
+    padding: 50px; /* spazio interno */
+}
+
+.article strong, .article_sm strong, .article_smm strong {
+    color: #f1c1c1;
+}
+
+/* ===== Images ===== */
+table td img {
+    width: 100%;
+    max-width: 624px;
+    height: auto;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    object-fit: cover;
+}
+
+/* NON SPOSTIAMO LE IMMAGINI */
+/* Lasciamo che sia la tabella a creare il margine laterale */
+
+.prima img,
+.prima2 img {
+    display: block;
+    
+}
+
+/* Sezione giochi */
+.dim img, .dim2 img {
+    display: block;
+    margin: 0 auto;
+    width: 100%;
+    max-width: 900px;
+}
+
+/* ===== Footer ===== */
+.footer {
+    background-color: #0d1b2a;
+    color: white;
+    text-align: center;
+    padding: 15px 0;
+    margin-top: 40px;
+    font-size: 0.95rem;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 992px) {
+
+    main table {
+        width: calc(100% - 40px);
+        margin: 0 20px;
+    }
+
+    td {
+        display: block;
+        padding: 10px 0;
+    }
+
+    nav {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .button {
+        width: 80%;
+    }
+
+    .article, .article_sm, .article_smm {
+        font-size: 1.1rem;
+    }
+}

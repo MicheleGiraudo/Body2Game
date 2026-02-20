@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Body2Game</title>
+
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+
+    /*larghezza e altezza diventano 100% della finestra invece di pixel fissi */
+    .container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    .background {
+      width: 100%;
+      height: 100%;
+      object-fit: fill;
+    }
+
+    /* Hotspot invisibili */
+    .btn {
+      position: absolute;
+      /*dimensioni in percentuale invece di pixel fissi (150/1537, 50/900) */
+      width: 9.75vw;
+      height: 5.56vh;
+      background: rgba(0,0,0,0); /* invisibile */
+      cursor: pointer;
+      border: none;
+      padding: 0;
+    }
+
+    /* Tooltip che appare al passaggio del mouse */
+    .tooltip {
+      position: absolute;
+      background: rgba(0,0,0,0.8);
+      color: #fff;
+      padding: 10px;
+      border-radius: 10px;
+      display: none;
+      width: 250px;
+      font-size: 14px;
+      z-index: 10;
+    }
+
+    .btn:hover .tooltip {
+      display: block;
+    }
+
+    /* Posizione dei tooltip rispetto all'hotspot */
+    #aerei .tooltip   { top: -80px; left: -50px; }
+    #calcio .tooltip  { top: -80px; left: -50px; }
+    #pacchi .tooltip  { top: -80px; left: -50px; }
+    #surf .tooltip    { top: -80px; left: -50px; }
+
+    /* Posizione hotspot */
+    #aerei   { top: 35%; left: 62%; }
+    #calcio  { top: 18%; left: 82%; }
+    #pacchi  { top: 13%; left: 3%; }
+    #surf    { top: 25%; left: 30%; }
+
+    /* Tooltip stile arcade 8-bit */
+    .tooltip {
+        position: absolute;
+        background: #FFD700;   /* giallo arcade */
+        color: #fff;            /* testo bianco */
+        padding: 10px;
+        border: 4px solid #000; /* bordo nero spesso */
+        border-radius: 0;       /* stile quadrato anni 80 */
+        /*font-size adattivo */
+        font-size: clamp(8px, 1vw, 16px);
+        font-family: 'Press Start 2P', monospace; /* font arcade */
+        display: none;
+        /*larghezza adattiva */
+        width: clamp(150px, 16vw, 250px);
+        z-index: 10;
+        text-align: center;
+        line-height: 1.2;
+        box-shadow: 4px 4px 0px #000; /* effetto 3D pixel */
+    }
+
+    .btn:hover .tooltip {
+        display: block;
+    }
+
+    @font-face {
+        font-family: 'PressStart';
+        src: url('fonts/PressStart2P-Regular.ttf') format('truetype');
+    }
+
+    .container {
+      position: relative;
+      width: 100%;
+      height: 100vh;
+    }
+
+    /* animazione comune */
+    .arrow {
+      position: absolute;
+      /*larghezza adattiva */
+      width: clamp(20px, 3.25vw, 50px);
+      animation: bounce 0.8s infinite ease-in-out;
+    }
+
+    /* posizioni personalizzate*/
+    .arrow1 {
+      top: 1.67vh; 
+      left: 8.13vw;  
+    }
+
+    .arrow2 {
+      top: 14.44vh;  
+      left: 35.78vw; 
+    }
+
+    .arrow3 {
+      top: 6.67vh;  
+      right: 8.78vw; 
+    }
+
+    .arrow4 {
+      top: 15.56vh;  
+      right: 32.53vw; 
+    }
+
+    /* animazione */
+    @keyframes bounce {
+      0%   { transform: translateY(0px); }
+      50%  { transform: translateY(10px); }
+      100% { transform: translateY(0px); }
+    }
+
+    /* scritta lampeggiante in basso */
+    #selectText {
+      position: fixed;
+      bottom: 13vh;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #ffffff;
+      font-family: 'Press Start 2P', monospace;
+      font-size: clamp(30px, 25vw, 40px);
+      letter-spacing: 0.1em;
+      white-space: nowrap;
+      z-index: 50;
+      text-shadow: 2px 2px 0 #000, -2px 2px 0 #000, 2px -2px 0 #000, -2px -2px 0 #000;
+      animation: blink 1s step-start infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0; }
+    }
+
+    /*pulsante muto fisso nell'angolo in basso a destra */
+    #muteBtn {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      z-index: 100;
+      background: #FFD700;
+      border: 4px solid #000;
+      box-shadow: 4px 4px 0px #000;
+      cursor: pointer;
+      width: clamp(36px, 3.5vw, 52px);
+      height: clamp(36px, 3.5vw, 52px);
+      font-size: clamp(16px, 1.8vw, 26px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #muteBtn:hover  { transform: translate(-2px, -2px); }
+    #muteBtn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0px #000; }
+
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <!-- scritta lampeggiante in basso -->
+  <div id="selectText">SELECT A GAME</div>
+
+  <!-- Sfondo -->
+  <img src="images/home_giochi.png" class="background">
+
+  <!-- Frecce -->
+  <img src="images/freccia.png" class="arrow arrow1">
+  <img src="images/freccia.png" class="arrow arrow2">
+  <img src="images/freccia.png" class="arrow arrow3">
+  <img src="images/freccia.png" class="arrow arrow4">
+
+  <!-- Hotspot invisibili con tooltip -->
+  <div id="aerei" class="btn" onclick="goTo('gioco_aerei')">
+    <div class="tooltip">
+      <strong>SKY FURY</strong><br>
+      <em>Istructions:</em> Move your hand vertically<br>to move and open it to fire.<br>
+      <em>Objective:</em> Shoot down as many planes as possible.
+    </div>
+  </div>
+
+  <div id="calcio" class="btn" onclick="goTo('gioco_calcio')">
+    <div class="tooltip">
+      <strong>CLEAN SHEET</strong><br>
+      <em>Istructions:</em> Move your hand.<br>
+      <em>Objective:</em> Save as many balls as possible<br>and keep the sheet clean.
+    </div>
+  </div>
+
+  <div id="pacchi" class="btn" onclick="goTo('gioco_pacchi')">
+    <div class="tooltip">
+      <strong>GIFT GRABBER</strong><br>
+      <em>Istructions:</em> Lean left or right with your body.<br>
+      <em>Objective:</em> Grab the gifts of the correct color<br>shown on screen.
+    </div>
+  </div>
+
+  <div id="surf" class="btn" onclick="goTo('gioco_surf')">
+    <div class="tooltip">
+      <strong>WAVE RUNNER</strong><br>
+      <em>Istructions:</em> Turn your head<br>to move left or right.<br>
+      <em>Objective:</em> Surf trhough the obstacles.
+    </div>
+  </div>
+
+</div>
+
+<!--pulsante muto nell'angolo in basso a destra -->
+<button id="muteBtn" onclick="toggleMute()" title="Toggle music">🔊</button>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
+<script>
+  //musica di sottofondo in loop
+  const musicaHome = new Howl({
+    src: ['./sound/music1.mp3'],
+    loop: true,
+    volume: 0.4,
+    autoplay: false
+  })
+
+  //suono click pulsante gioco
+  const suonoBeep = new Howl({
+    src: ['./sound/beep.mp3'],
+    volume: 0.7
+  })
+  
+  //avvia la musica al primo click (politica autoplay dei browser)
+  let musicaAvviata = false
+  document.addEventListener('click', () => {
+    if (!musicaAvviata) {
+      musicaHome.play()
+      musicaAvviata = true
+    }
+  }, { once: true })
+  
+  //muto / smuto
+  let isMuted = false
+  function toggleMute() {
+    isMuted = !isMuted
+    musicaHome.mute(isMuted)
+    document.getElementById('muteBtn').textContent = isMuted ? '🔇' : '🔊'
+  }
+
+  //goTo ora riproduce il beep prima di navigare
+  function goTo(cartella) {
+    suonoBeep.play()
+    setTimeout(() => {
+      window.location.href = cartella + "/index.html"
+    }, 250)
+  }
+</script>
+
+</body>
+</html>
