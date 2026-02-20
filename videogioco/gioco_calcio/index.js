@@ -77,7 +77,7 @@ function preload(){
 }
 
 function setup(){
-    createCanvas(Ximg, Yimg)
+    createCanvas(windowWidth, windowHeight)
     frameRate(24)
 
     palla = new Palla(pallaImg, xPalla, yPalla)
@@ -92,6 +92,10 @@ function setup(){
     
     stato = "attesa"
     tempoInizioAttesa = millis()
+
+    userStartAudio()
+    audioPronto = true
+    suonoParata.setVolume(0.2) //abbasa il volume
 
     // Crea pulsanti Restart e Menu
     btnRestart = createButton('▶ RESTART')
@@ -149,14 +153,6 @@ function restartGame() {
     guanto = new Guanto(guantoImg, xGuanto, yGuanto)
     resetPalla()
     tempoInizioAttesa = millis()
-}
-
-// Abilita audio al primo click
-function mousePressed() {
-    userStartAudio()
-    audioPronto = true
-    suonoParata.setVolume(0.2) //abbasa il volume
-    console.log('Audio attivato!')
 }
 
 //funzione asincrona, se non il try non viene eseguito il programma non si interrompe e da solo un input di errore
@@ -411,6 +407,10 @@ function checkMano(){
         textSize(16);
         text("Nessuna mano", 160, 35);
     }
+}
+
+function windowResized() {
+    resizeCanvas(windowWidth, windowHeight)
 }
 
 // gestione tasto esc
