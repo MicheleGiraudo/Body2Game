@@ -166,63 +166,6 @@ function setup() {
     btnMenu.hide()
 }
 
-function styleButton(btn, bgColor, textColor) {
-    btn.style('font-family', 'monospace')
-    btn.style('font-size', '16px')
-    btn.style('background', bgColor)
-    btn.style('color', textColor)
-    btn.style('border', '4px solid #000')
-    btn.style('padding', '14px 28px')
-    btn.style('cursor', 'pointer')
-    btn.style('position', 'absolute')
-    btn.style('box-shadow', '4px 4px 0px #000')
-    btn.style('letter-spacing', '2px')
-    btn.elt.onmouseover = () => btn.style('transform', 'translate(-2px,-2px)')
-    btn.elt.onmouseout  = () => btn.style('transform', 'translate(0,0)')
-}
-
-function showButtons() {
-    if (buttonsVisible) return
-    buttonsVisible = true
-    let rect = document.querySelector('canvas').getBoundingClientRect()
-    let container = document.getElementById('canvasContainer').getBoundingClientRect()
-    let cx = rect.left - container.left + rect.width / 2
-    let cy = rect.top - container.top + rect.height / 2
-    btnRestart.position(cx - 160, cy + 130)
-    btnMenu.position(cx + 20, cy + 130)
-    btnRestart.show()
-    btnMenu.show()
-}
-
-function hideButtons() {
-    buttonsVisible = false
-    btnRestart.hide()
-    btnMenu.hide()
-}
-
-function restartGame() {
-    hideButtons()
-    gameOver = false
-    gameOverSoundPlayed = false
-    isPaused = false
-    lives = MAX_LIVES
-    ammo = MAX_AMMO
-    isReloading = false
-    enemiesDestroyed = 0
-    isInvincible = false
-    gameCanStart = false
-    lastCountdownSecond = -1
-    obstacles.length = 0
-    shots.length = 0
-    gears.length = 0
-    explosions.length = 0
-    handY = null
-    bg_x1 = 0
-    bg_x2 = 1515
-    plane = new Plane(img_plane, plane_x, plane_y)
-    gameStartTime = millis()
-}
-
 function draw() {
     // Controlla se sono passati 10 secondi
     if (!gameCanStart && !isPaused && millis() - gameStartTime >= DELAY_BEFORE_ENEMIES) {
@@ -590,4 +533,61 @@ function detectHandClosed(prediction) {
     let avgDist = (thumbDist + indexDist + middleDist + ringDist + pinkyDist) / 5
     
     return avgDist < 100
+}
+
+function styleButton(btn, bgColor, textColor) {
+    btn.style('font-family', 'monospace')
+    btn.style('font-size', '16px')
+    btn.style('background', bgColor)
+    btn.style('color', textColor)
+    btn.style('border', '4px solid #000')
+    btn.style('padding', '14px 28px')
+    btn.style('cursor', 'pointer')
+    btn.style('position', 'absolute')
+    btn.style('box-shadow', '4px 4px 0px #000')
+    btn.style('letter-spacing', '2px')
+    btn.elt.onmouseover = () => btn.style('transform', 'translate(-2px,-2px)')
+    btn.elt.onmouseout  = () => btn.style('transform', 'translate(0,0)')
+}
+
+function showButtons() {
+    if (buttonsVisible) return
+    buttonsVisible = true
+    let rect = document.querySelector('canvas').getBoundingClientRect()
+    let container = document.getElementById('canvasContainer').getBoundingClientRect()
+    let cx = rect.left - container.left + rect.width / 2
+    let cy = rect.top - container.top + rect.height / 2
+    btnRestart.position(cx - 160, cy + 130)
+    btnMenu.position(cx + 20, cy + 130)
+    btnRestart.show()
+    btnMenu.show()
+}
+
+function hideButtons() {
+    buttonsVisible = false
+    btnRestart.hide()
+    btnMenu.hide()
+}
+
+function restartGame() {
+    hideButtons()
+    gameOver = false
+    gameOverSoundPlayed = false
+    isPaused = false
+    lives = MAX_LIVES
+    ammo = MAX_AMMO
+    isReloading = false
+    enemiesDestroyed = 0
+    isInvincible = false
+    gameCanStart = false
+    lastCountdownSecond = -1
+    obstacles.length = 0
+    shots.length = 0
+    gears.length = 0
+    explosions.length = 0
+    handY = null
+    bg_x1 = 0
+    bg_x2 = 1515
+    plane = new Plane(img_plane, plane_x, plane_y)
+    gameStartTime = millis()
 }
