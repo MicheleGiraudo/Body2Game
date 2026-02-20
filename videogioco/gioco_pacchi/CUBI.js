@@ -345,6 +345,11 @@ function gotHands(results) {
   hands = results; // aggiorna l'array globale delle mani
 }
 
+function windowResized() {
+    resizeCanvas(windowWidth, windowHeight)
+    pila = width - 100
+}
+
 function keyPressed() {
   // ESC attiva/disattiva la pausa (solo se la partita è in corso)
   if (keyCode == ESCAPE && !gameOver && !win) {

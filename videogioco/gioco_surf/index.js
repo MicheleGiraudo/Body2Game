@@ -64,7 +64,7 @@ function preload() {
 }
 
 function setup() {
-  createCanvas(1500, 710);
+  createCanvas(windowWidth, windowHeight);
   protagonista = new Player(surfistadx, width / 2 - 42.5, height - 120);
   bgY2 = -height;
   frameRate(30);
@@ -297,6 +297,11 @@ function gotFaces(results) {
       protagonista.imgShow = surfistasx;
     }
   }
+}
+
+function windowResized() {
+    resizeCanvas(windowWidth, windowHeight)
+    protagonista.x = constrain(protagonista.x, 0, width - protagonista.width)
 }
 
 // tasto esc per la pausa
