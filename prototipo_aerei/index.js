@@ -155,7 +155,7 @@ function draw() {
         gameCanStart = true
     }
     
-    // Gestione ricarica munizioni (solo se non in pausa)
+    // Gestione ricarica munizioni
     if (isReloading && !isPaused) {
         let reloadProgress = millis() - reloadStartTime
         if (reloadProgress >= RELOAD_TIME) {
@@ -164,7 +164,7 @@ function draw() {
         }
     }
     
-    // Loop dello sfondo (si ferma se game over o pausa)
+    // Loop dello sfondo
     if (!gameOver && !isPaused) {
         bg_x1 -= bg_speed
         bg_x2 -= bg_speed
@@ -182,7 +182,7 @@ function draw() {
         }
     }
     
-    // Disegna cuori (vite) in alto a sinistra
+    // Disegna cuori in alto a sinistra
     for (let i = 0; i < MAX_LIVES; i++) {
         let heartX = 20 + i * 70
         let heartY = 10
@@ -258,24 +258,24 @@ function draw() {
             image(plane.imgShow, plane.x, plane.y)
         }
         
-        // CONTROLLO CON HAND TRACKING (solo se non in pausa)
+        // CONTROLLO CON HAND TRACKING
         if (handY !== null && !gameOver && !isPaused) {
             let targetY = constrain(handY - plane.height / 2, 30, height - plane.height - 30)
             plane.y = lerp(plane.y, targetY, 0.3)
         }
     }
     
-    // Spawn aerei nemici (solo se non in pausa)
+    // Spawn aerei nemici
     if (gameCanStart && !isPaused && frameCount % plane_enemy_spawnRate === 0 && !gameOver) {
         obstacles.push(new PlaneEnemy(img_plane_enemy))
     }
     
-    // Spawn ingranaggi (solo se non in pausa)
+    // Spawn ingranaggi
     if (gameCanStart && !isPaused && frameCount % gear_spawnRate === 0 && !gameOver) {
         gears.push(new Gear(img_gear))
     }
 
-    // SPARO CON HAND TRACKING (solo se non in pausa)
+    // Sparo con hand tracking
     if (!isHandClosed && !isPaused && handY !== null && frameCount % bullet_spawnRate === 0 && !gameOver && plane && !isReloading) {
         if (ammo > 0) {
             shots.push(new Bullet(img_bullet, plane.x + plane.width, plane.y + plane.height/2))
@@ -447,7 +447,7 @@ function draw() {
         }
     }
 
-    // Overlay pausa — disegnato PER ULTIMO così copre tutto il gioco
+    // Overlay pausa 
     if (isPaused) {
         fill(0, 0, 0, 150)
         noStroke()
